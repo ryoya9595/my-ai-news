@@ -7,20 +7,7 @@
     --shadow:0 1px 2px rgba(40,30,10,.05),0 8px 30px rgba(40,30,10,.07);
     --radius:16px;
     --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
-  }
-  @media (prefers-color-scheme:dark){
-    :root:not([data-theme="light"]){
-      --ground:#161019; --panel:#1f1826; --panel-2:#271e30;
-      --ink:#f3ecdf; --muted:#a89a86; --line:#352a3f;
-      --gold:#f5c542; --gold-soft:#e9a900; --rose:#ff86b0;
-      --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px rgba(0,0,0,.35);
-    }
-  }
-  :root[data-theme="dark"]{
-    --ground:#161019; --panel:#1f1826; --panel-2:#271e30;
-    --ink:#f3ecdf; --muted:#a89a86; --line:#352a3f;
-    --gold:#f5c542; --gold-soft:#e9a900; --rose:#ff86b0;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px rgba(0,0,0,.35);
+    color-scheme:light;
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--ground)}
