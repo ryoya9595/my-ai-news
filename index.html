@@ -1,0 +1,360 @@
+<title>AIニュースリサーチスキル</title>
+<style>
+  :root{
+    --ground:#faf7f0; --panel:#ffffff; --panel-2:#f3eee3;
+    --ink:#241f17; --muted:#7d7566; --line:#e7dfcf;
+    --gold:#c68a00; --gold-soft:#e9a900; --rose:#c14b7d;
+    --shadow:0 1px 2px rgba(40,30,10,.05),0 8px 30px rgba(40,30,10,.07);
+    --radius:16px;
+    --sans:"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",system-ui,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --ground:#161019; --panel:#1f1826; --panel-2:#271e30;
+      --ink:#f3ecdf; --muted:#a89a86; --line:#352a3f;
+      --gold:#f5c542; --gold-soft:#e9a900; --rose:#ff86b0;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#161019; --panel:#1f1826; --panel-2:#271e30;
+    --ink:#f3ecdf; --muted:#a89a86; --line:#352a3f;
+    --gold:#f5c542; --gold-soft:#e9a900; --rose:#ff86b0;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 40px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground)}
+  .wrap{
+    font-family:var(--sans); color:var(--ink); background:var(--ground);
+    -webkit-font-smoothing:antialiased; line-height:1.7;
+    padding:clamp(20px,5vw,64px) clamp(16px,5vw,32px);
+  }
+  .page{max-width:960px;margin:0 auto}
+  .eyebrow{
+    font-size:12px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--gold); font-weight:800; margin:0 0 14px;
+  }
+  h1{
+    font-size:clamp(38px,7vw,64px); line-height:1.02; letter-spacing:-.02em;
+    margin:0 0 16px; font-weight:900; text-wrap:balance;
+  }
+  .lead{font-size:clamp(16px,2.4vw,20px); color:var(--muted); max-width:34em; margin:0}
+  .tag-mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* hero */
+  .hero{display:grid; grid-template-columns:1.3fr .7fr; gap:clamp(24px,4vw,48px); align-items:center; margin-bottom:56px}
+  @media (max-width:680px){.hero{grid-template-columns:1fr}}
+  .phone{
+    aspect-ratio:9/16; border-radius:24px; overflow:hidden; position:relative;
+    background:linear-gradient(160deg,#161029,#221a2e 60%,#2f2113);
+    box-shadow:var(--shadow); border:1px solid var(--line);
+    padding:20px 16px; max-width:260px; width:100%; margin:0 auto;
+    display:flex; flex-direction:column; gap:9px; justify-content:center;
+  }
+  .phone::before{content:"";position:absolute;inset:0;background:
+    radial-gradient(60% 40% at 50% 25%,rgba(245,197,66,.24),transparent 62%)}
+  .tw{position:relative;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+    border-radius:11px;padding:9px 11px;display:grid;grid-template-columns:20px 1fr;gap:8px}
+  .tw .av{width:20px;height:20px;border-radius:50%;background:linear-gradient(140deg,#f5c542,#c14b7d)}
+  .tw .nm{font-size:9.5px;font-weight:800;color:#fff;opacity:.9;margin-bottom:2px}
+  .tw .tx{font-size:10.5px;color:#fff;opacity:.72;line-height:1.45}
+  .tw .hb{position:absolute;right:9px;bottom:7px;font-size:11px}
+  .tw.liked{border-color:rgba(245,197,66,.45);background:rgba(245,197,66,.09)}
+  .phone .pill{position:relative;text-align:center;margin-top:6px}
+  .phone .pill span{font-size:10.5px;letter-spacing:.1em;color:#f5c542;
+    border:1px solid rgba(245,197,66,.4);padding:5px 12px;border-radius:999px;font-weight:700}
+
+  /* step strip */
+  .steps{display:flex;gap:10px;flex-wrap:wrap;margin-top:26px}
+  .steps .s{display:flex;align-items:center;gap:10px;background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:9px 16px 9px 10px;font-weight:700;font-size:14px}
+  .steps .n{width:24px;height:24px;border-radius:50%;background:var(--gold);color:#1a1206;
+    display:grid;place-items:center;font-size:13px;font-weight:900}
+
+  section{margin:52px 0}
+  h2{font-size:clamp(22px,3.4vw,30px);letter-spacing:-.01em;margin:0 0 6px;font-weight:900}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:15px}
+
+  /* pipeline */
+  .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media (max-width:680px){.flow{grid-template-columns:1fr 1fr}}
+  .node{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;box-shadow:var(--shadow)}
+  .node .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);font-weight:800}
+  .node h3{margin:8px 0 6px;font-size:17px;font-weight:800}
+  .node p{margin:0;font-size:13.5px;color:var(--muted);line-height:1.6}
+
+  .callout{background:var(--panel-2);border:1px solid var(--line);border-left:3px solid var(--gold);
+    border-radius:12px;padding:18px 20px;margin:22px 0 0;font-size:15px}
+  .callout b{color:var(--ink)}
+  .callout.warn{border-left-color:var(--rose)}
+
+  /* 配布キット */
+  .kit{background:var(--panel);border:1px solid var(--line);border-radius:20px;
+    padding:clamp(22px,4vw,34px);box-shadow:var(--shadow)}
+  .kit-actions{display:flex;gap:12px;flex-wrap:wrap;margin:4px 0 18px}
+  .btn{display:inline-flex;align-items:center;gap:10px;font-family:var(--sans);
+    font-weight:800;font-size:15px;padding:14px 22px;border-radius:12px;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink);text-decoration:none;
+    transition:transform .08s ease,filter .15s ease}
+  .btn:hover{filter:brightness(1.04)} .btn:active{transform:translateY(1px)}
+  .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+  .btn.primary{background:var(--gold);color:#1a1206;border-color:transparent}
+  .btn .sz{font-weight:600;font-size:12px;opacity:.7}
+  .msgbox{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto}
+  .msgbox pre{margin:0;font-family:var(--sans);font-size:13.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
+  .hint{color:var(--muted);font-size:13px;margin:14px 0 0}
+
+  /* rows */
+  .use{display:grid;gap:12px}
+  .row{display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start;
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+  .row .n{width:30px;height:30px;border-radius:9px;background:var(--gold);color:#1a1206;
+    display:grid;place-items:center;font-weight:900;font-size:15px}
+  .row .t b{font-size:15.5px}
+  .row .t p{margin:4px 0 0;color:var(--muted);font-size:13.5px}
+  code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
+    background:color-mix(in srgb,var(--ink) 8%,transparent);padding:2px 7px;border-radius:6px;
+    display:inline-block;margin-top:8px;color:var(--ink)}
+
+  /* accounts */
+  .acc-group{margin:0 0 22px}
+  .acc-group > h3{font-size:15px;margin:0 0 4px;font-weight:900}
+  .acc-group > p{margin:0 0 12px;font-size:13.5px;color:var(--muted)}
+  .accs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  @media (max-width:680px){.accs{grid-template-columns:1fr}}
+  .acc{display:block;background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:13px 15px;text-decoration:none;color:inherit;transition:transform .08s ease,filter .15s ease}
+  .acc:hover{filter:brightness(1.03);transform:translateY(-1px)}
+  .acc b{font-size:14.5px;display:block}
+  .acc .h{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--gold);font-weight:700}
+  .acc span{display:block;margin-top:5px;font-size:12.5px;color:var(--muted);line-height:1.55}
+
+  /* rules */
+  .rules{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:680px){.rules{grid-template-columns:1fr}}
+  .rule{display:flex;gap:12px;align-items:flex-start;background:var(--panel);
+    border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .rule .dot{font-weight:900;margin-top:1px;color:var(--gold)}
+  .rule .dot.no{color:var(--rose)}
+  .rule span{font-size:14px}
+
+  /* table */
+  .tbl{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);
+    border-radius:12px;overflow:hidden;font-size:14px}
+  .tbl th,.tbl td{text-align:left;padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  .tbl th{background:var(--panel-2);font-size:13px;font-weight:800}
+  .tbl tr:last-child td{border-bottom:none}
+  .scroll-x{overflow-x:auto}
+
+  .det{margin-top:16px}
+  .det summary{cursor:pointer;font-weight:800;font-size:14px;color:var(--gold);list-style:none;
+    display:inline-flex;align-items:center;gap:8px;padding:8px 0}
+  .det summary::-webkit-details-marker{display:none}
+  .det summary::before{content:"▸";font-size:12px}
+  .det[open] summary::before{content:"▾"}
+  .det summary:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:4px}
+  footer{margin-top:64px;padding-top:24px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+</style>
+
+<div class="wrap">
+<div class="page">
+
+  <div class="hero">
+    <div>
+      <p class="eyebrow">Claude Code スキル ・ <span class="tag-mono" style="text-transform:none;letter-spacing:0">my-ai-news</span></p>
+      <h1>AIニュース<br>リサーチスキル</h1>
+      <p class="lead">ひとこと打つだけ。あなたのXの<b>「フォロー中」タイムライン</b>をClaudeが巡回して、その日のAI最新情報を箇条書きにまとめます。拾った投稿には<b>その場でいいね</b>。あとからスマホでゆっくり深掘りできます。</p>
+      <div class="steps">
+        <div class="s"><span class="n">1</span>導入する</div>
+        <div class="s"><span class="n">2</span>フォローする</div>
+        <div class="s"><span class="n">3</span>毎朝ひとこと</div>
+      </div>
+    </div>
+    <div class="phone" aria-hidden="true">
+      <div class="tw liked"><div class="av"></div><div><div class="nm">ChatGPT</div><div class="tx">新モデルの提供を開始しました</div></div><div class="hb">❤️</div></div>
+      <div class="tw liked"><div class="av"></div><div><div class="nm">AGIラボ</div><div class="tx">Claude Codeに新機能が追加</div></div><div class="hb">❤️</div></div>
+      <div class="tw"><div class="av"></div><div><div class="nm">チャエン</div><div class="tx">本日のAIニュースまとめ</div></div><div class="hb">🤍</div></div>
+      <div class="pill"><span>▍ 読む → いいね → まとめる</span></div>
+    </div>
+  </div>
+
+  <section class="kit">
+    <h2>この1式を、そのまま渡せる</h2>
+    <p class="sub">Zipをダウンロードして、下の案内文と一緒に送るだけ。受け取った人は、自分のClaude Codeに読ませれば導入できます。<b>勝手にインストールはされません</b>——必ず「導入していいですか？」の確認が入ります。</p>
+    <div class="kit-actions">
+      <a class="btn primary" href="my-ai-news-skill.zip" download>⬇ my-ai-news-skill.zip <span class="sz">約12KB</span></a>
+      <button class="btn" id="copyMsg">📋 案内文をコピー</button>
+    </div>
+    <div class="msgbox">
+<pre id="sendMsg">【AIニュースリサーチ｜Claude Codeスキル】
+
+毎日のAI最新情報チェックを、Claude Codeに任せられるスキルです。
+あなたのXの「フォロー中」タイムラインを巡回して、その日のAIニュース
+（新ツール・新モデル・アップデート）を箇条書きにまとめてくれます。
+拾った投稿にはその場で「いいね」を付けるので、あとからスマホの
+「いいね一覧」でゆっくり読み返せます。
+
+■ 事前に必要なもの
+・Claude Code（Mac / Windows どちらでもOK）
+・Chrome拡張「Claude in Chrome」← これが無いと動きません
+・あなた自身のXアカウント
+
+■ 導入のしかた
+1. Zipを解凍する
+2. 出てきた「my-ai-news-kit」フォルダの中の
+   「はじめにお読みください.md」を読む
+3. Claude Codeにこう頼む：
+   my-ai-news-kit フォルダの中の「導入手順_ClaudeCodeに読ませる.md」を
+   読んで、その手順どおりに進めてください。
+4. Claude Codeが内容を説明したあと「導入してよろしいですか？」と
+   聞いてくるので、OKなら「はい」と答える
+5. Claude Codeを再起動する
+
+■ 使い方
+チャットで /my-ai-news と打つだけ（「AIニュース調べて」でもOK）
+初回だけ、フォローするアカウントの提案などの質問があります。
+
+くわしい解説ページ（Zipもここから落とせます）：
+https://ryoya9595.github.io/my-ai-news/</pre>
+    </div>
+    <p class="hint">※ 導入で増えるのは <b class="tag-mono">.claude/skills/my-ai-news/</b> フォルダ1つだけ。既存のスキルや設定が消えることはありません。<br>※ このページのURLをそのまま送ってもOK。受け取った人が上のボタンからZipを落とせます。</p>
+  </section>
+
+  <section>
+    <h2>Claudeが<span style="color:var(--gold)">代わりにXを読む</span>。</h2>
+    <p class="sub">やっているのは、人間が毎朝スマホでやっている作業とまったく同じ。ただし止まらないし、見落とさないし、いいねを押し忘れない。</p>
+    <div class="flow">
+      <div class="node">
+        <div class="k">① 開く</div><h3>フォロー中TL</h3>
+        <p>新しいタブでXを開いて「フォロー中」に切り替える。</p>
+      </div>
+      <div class="node">
+        <div class="k">② 読む</div><h3>1投稿ずつ</h3>
+        <p>スクロールしながら、AI関連かどうかを判断。広告は即スキップ。</p>
+      </div>
+      <div class="node">
+        <div class="k">③ 押す</div><h3>その場でいいね</h3>
+        <p>見つけたら即いいね。後でまとめて戻る、はやらない。</p>
+      </div>
+      <div class="node">
+        <div class="k">④ 出す</div><h3>箇条書き</h3>
+        <p>「AI名 → 何が起きたか」だけのシンプルな一覧に。</p>
+      </div>
+    </div>
+    <div class="callout"><b>いいねを押す理由</b> — その場で押しておけば、あとからスマホのXアプリの「いいね一覧」を開くだけで、気になったものだけをゆっくり深掘りできる。まとめは“見出し”、いいねは“しおり”。</div>
+  </section>
+
+  <section>
+    <h2>成果の質は、<span style="color:var(--gold)">フォローで決まる</span>。</h2>
+    <p class="sub">このスキルはタイムラインを読むだけなので、タイムラインが薄ければ何も採れません。だから初回セットアップで、<b>AIの最新情報を投稿する頻度が高い</b>アカウントだけを厳選して提案します。たまにAIの話をするアカウントをいくら増やしても、タイムラインは育ちません。</p>
+
+    <div class="acc-group">
+      <h3>公式アカウント <span style="color:var(--muted);font-weight:600">— 一次情報。ここが一番確実</span></h3>
+      <div class="accs">
+        <a class="acc" href="https://x.com/ChatGPT" target="_blank" rel="noopener"><b>ChatGPT</b><span class="h">@ChatGPT</span><span>OpenAI公式。新モデル・新機能の発表が全部ここから出る</span></a>
+        <a class="acc" href="https://x.com/AnthropicAI" target="_blank" rel="noopener"><b>Anthropic</b><span class="h">@AnthropicAI</span><span>Claudeの新モデル・研究発表の一次情報</span></a>
+        <a class="acc" href="https://x.com/claudeai" target="_blank" rel="noopener"><b>Claude</b><span class="h">@claudeai</span><span>使い方・新機能の告知が高頻度で流れる</span></a>
+        <a class="acc" href="https://x.com/ManusAI_JP" target="_blank" rel="noopener"><b>Manus 公式（マナス）</b><span class="h">@ManusAI_JP</span><span>アップデート告知・活用Tipsを日本語で高頻度に投稿</span></a>
+      </div>
+    </div>
+
+    <div class="acc-group">
+      <h3>AIエージェント／開発ツールの速報ラボ <span style="color:var(--muted);font-weight:600">— ネタが一番早い</span></h3>
+      <div class="accs">
+        <a class="acc" href="https://x.com/ctgptlb" target="_blank" rel="noopener"><b>AGIラボ</b><span class="h">@ctgptlb</span><span>Claude Code・Codex等のエージェント情報を毎日大量に投稿</span></a>
+        <a class="acc" href="https://x.com/claudecode84" target="_blank" rel="noopener"><b>Claude code研究ラボ</b><span class="h">@claudecode84</span><span>Claude Codeを24時間研究して検証結果を高頻度で投稿</span></a>
+        <a class="acc" href="https://x.com/Gencoin8" target="_blank" rel="noopener"><b>Codex研究ラボ</b><span class="h">@Gencoin8</span><span>Codexを24時間研究して検証結果を高頻度で投稿</span></a>
+      </div>
+    </div>
+
+    <div class="acc-group">
+      <h3>AIニュース系インフルエンサー <span style="color:var(--muted);font-weight:600">— 噛み砕いた解説つき</span></h3>
+      <div class="accs">
+        <a class="acc" href="https://x.com/masahirochaen" target="_blank" rel="noopener"><b>チャエン｜デジライズCEO</b><span class="h">@masahirochaen</span><span>重要AIニュースを毎日最速で発信。頻度・速度ともにトップクラス</span></a>
+        <a class="acc" href="https://x.com/shota7180" target="_blank" rel="noopener"><b>木内翔大＠SHIFT AI代表</b><span class="h">@shota7180</span><span>最新AIトレンド・ツール情報を高頻度で発信</span></a>
+        <a class="acc" href="https://x.com/keitowebai" target="_blank" rel="noopener"><b>KEITOAIディレクター</b><span class="h">@keitowebai</span><span>生成AIの最新情報・活用法を全部自分で検証して毎日投稿</span></a>
+        <a class="acc" href="https://x.com/Mikimiki10211" target="_blank" rel="noopener"><b>mikimiki webスクール</b><span class="h">@Mikimiki10211</span><span>Canva・AI・デザイン系の最新トレンドを高頻度で発信</span></a>
+        <a class="acc" href="https://x.com/Fujin_Metaverse" target="_blank" rel="noopener"><b>Fujin｜AI自動化の人</b><span class="h">@Fujin_Metaverse</span><span>AI自動化と海外AIトレンド。国内に入る前のネタが拾える</span></a>
+        <a class="acc" href="https://x.com/ds_nakajima" target="_blank" rel="noopener"><b>なかじ／中島大介@ウェブ職TV</b><span class="h">@ds_nakajima</span><span>SEO・AIセキュリティなど開発寄りの実務情報を高頻度で発信</span></a>
+      </div>
+    </div>
+
+    <div class="callout"><b>迷ったらこの8つ</b> — 公式4つ（ChatGPT／Anthropic／Claude／Manus）＋速報ラボ3つ（AGIラボ／Claude code研究ラボ／Codex研究ラボ）＋チャエン。ここまで入れておけば、1回スクロールするだけでその日のネタが揃います。</div>
+  </section>
+
+  <section>
+    <h2>導入は<span style="color:var(--gold)">確認つき</span>。勝手には入らない。</h2>
+    <p class="sub">受け取った人のClaude Codeは、この順番でしか動きません。説明を聞いて「やめる」と言えば、そこで止まります。</p>
+    <div class="use">
+      <div class="row"><div class="n">1</div><div class="t"><b>Zipを解凍して、フォルダを置く</b>
+        <p>デスクトップでもダウンロードフォルダでもOK。</p></div></div>
+      <div class="row"><div class="n">2</div><div class="t"><b>Claude Codeに手順書を読ませる</b>
+        <p>フォルダをチャットにドラッグして、こう頼むのが確実。</p>
+        <code>導入手順_ClaudeCodeに読ませる.md を読んで、その手順どおりに進めてください</code></div></div>
+      <div class="row"><div class="n">3</div><div class="t"><b>Claude Codeが内容を説明する</b>
+        <p>何をするスキルか・どこに入るか・何をしないかを先に伝えます。</p></div></div>
+      <div class="row"><div class="n">4</div><div class="t"><b>「導入してよろしいですか？」と聞かれる</b>
+        <p>「はい」と答えて初めてインストールされます。それ以外は何もしません。</p></div></div>
+      <div class="row"><div class="n">5</div><div class="t"><b>Chrome拡張のチェック → 再起動</b>
+        <p>Claude in Chromeが使えるかを自動で確認。足りなければ案内が出ます。</p>
+        <code>/my-ai-news</code></div></div>
+    </div>
+    <div class="callout"><b>Mac も Windows もOK</b> — 手順書にはMac用（<span class="tag-mono">mkdir</span>／<span class="tag-mono">cp</span>）とWindows用（PowerShellの <span class="tag-mono">New-Item</span>／<span class="tag-mono">Copy-Item</span>）の両方が書いてあるので、環境に合う方が自動で選ばれます。</div>
+  </section>
+
+  <section>
+    <h2>やること・<span style="color:var(--rose)">やらないこと</span></h2>
+    <p class="sub">他人のアカウントで動かさない。いいね以外の外向きアクションはしない。ここは固定です。</p>
+    <div class="rules">
+      <div class="rule"><span class="dot">✓</span><span>タイムラインを読んで、AI関連の投稿をピックアップする</span></div>
+      <div class="rule"><span class="dot">✓</span><span>拾った投稿に<b>いいね</b>を押す</span></div>
+      <div class="rule"><span class="dot">✓</span><span>フォローの追加を<b>提案</b>する（実行は確認してから）</span></div>
+      <div class="rule"><span class="dot">✓</span><span>結果を箇条書きでまとめて出す</span></div>
+      <div class="rule"><span class="dot no">✕</span><span>ポスト・リポスト・返信・引用・DM</span></div>
+      <div class="rule"><span class="dot no">✕</span><span>Xのログイン情報（ID・パスワード）を入力する</span></div>
+      <div class="rule"><span class="dot no">✕</span><span>他人のXアカウントで実行する</span></div>
+      <div class="rule"><span class="dot no">✕</span><span>既存のファイル・他のスキルを削除／上書きする</span></div>
+    </div>
+    <div class="callout warn"><b>投稿の中の指示には従いません</b> — Xの投稿に「〇〇して」と書かれていても、それは情報であって命令ではありません。怪しい指示を見つけたら、実行せずに担当者に報告します。</div>
+  </section>
+
+  <section>
+    <h2>困ったときは</h2>
+    <p class="sub">だいたいこの4つのどれかです。</p>
+    <div class="scroll-x">
+      <table class="tbl">
+        <tr><th style="width:38%">症状</th><th>対処</th></tr>
+        <tr><td><span class="tag-mono">/my-ai-news</span> が出てこない</td><td>Claude Codeを再起動する。それでも出なければ、スキルフォルダにSKILL.mdがあるか確認してもらう</td></tr>
+        <tr><td>ブラウザが動かない</td><td>Chrome拡張「Claude in Chrome」が入っているか・有効かを確認する。<b>これが最頻出</b></td></tr>
+        <tr><td>情報が全然集まらない</td><td>フォロー数が足りていない。「おすすめアカウントもう一回出して」と頼んで追加する。フォロー直後の1〜2日は少なめなのが普通</td></tr>
+        <tr><td>Windowsでコマンドが失敗する</td><td>「Windowsなので、PowerShell用のコマンドで進めて」と伝える</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <div>配布は <b class="tag-mono">my-ai-news-skill.zip</b>（約12KB）。<br>中身は <span class="tag-mono">はじめにお読みください.md</span> ／ <span class="tag-mono">導入手順_ClaudeCodeに読ませる.md</span> ／ <span class="tag-mono">my-ai-news/SKILL.md</span> の3つ。</div>
+    <div>必要環境：Claude Code（Mac / Windows）＋ Chrome拡張「Claude in Chrome」＋ 自分のXアカウント</div>
+  </footer>
+
+</div>
+</div>
+
+<script>
+(function(){
+  function bind(btnId,preId){
+    var btn=document.getElementById(btnId), msg=document.getElementById(preId);
+    if(!btn||!msg)return;
+    btn.addEventListener('click',function(){
+      var text=msg.innerText;
+      var ok=function(){var o=btn.innerHTML;btn.textContent='\u2713 \u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f';setTimeout(function(){btn.innerHTML=o;},1700);};
+      var fb=function(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);ok();};
+      if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
+    });
+  }
+  bind('copyMsg','sendMsg');
+  bind('copyKit','kitText');
+})();
+</script>
