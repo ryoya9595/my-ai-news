@@ -88,6 +88,7 @@
   .btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
   .btn.primary{background:var(--gold);color:#1a1206;border-color:transparent}
   .btn .sz{font-weight:600;font-size:12px;opacity:.7}
+  .kit .row{background:var(--panel-2);box-shadow:none}
   .msgbox{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 18px;overflow-x:auto}
   .msgbox pre{margin:0;font-family:var(--sans);font-size:13.5px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
   .hint{color:var(--muted);font-size:13px;margin:14px 0 0}
@@ -168,49 +169,44 @@
   </div>
 
   <section class="kit">
-    <h2>この1式を、そのまま渡せる</h2>
-    <p class="sub">Zipをダウンロードして、案内文と一緒に送るだけ。受け取った人は、自分のClaude Codeに読ませれば導入できます。<b>勝手にインストールはされません</b>——必ず「導入していいですか？」の確認が入ります。</p>
-    <div class="kit-actions">
-      <a class="btn primary" href="my-ai-news-skill.zip" download>⬇ my-ai-news-skill.zip <span class="sz">約12KB</span></a>
-      <button class="btn" id="copyMsg">📋 案内文をコピー</button>
+    <h2>導入は、この4ステップ</h2>
+    <p class="sub">ZipとプロンプトをAIエージェントに渡すだけ。ターミナルでコマンドを打ったり、中のファイルを自分で読んだりする必要はありません。</p>
+    <div class="use">
+      <div class="row"><div class="n">1</div><div class="t"><b>Zipをダウンロードする</b>
+        <p>約12KBの軽いファイルです。解凍しなくてOK。</p>
+        <div style="margin-top:12px"><a class="btn primary" href="my-ai-news-skill.zip" download>⬇ my-ai-news-skill.zip <span class="sz">約12KB</span></a></div>
+      </div></div>
+      <div class="row"><div class="n">2</div><div class="t"><b>導入プロンプトをコピーする</b>
+        <p>AIエージェントに貼り付ける指示文です。中身を読む必要はありません。</p>
+        <div style="margin-top:12px"><button class="btn" id="copyMsg" type="button">📋 導入プロンプトをコピー</button></div>
+      </div></div>
+      <div class="row"><div class="n">3</div><div class="t"><b>Zipをアップロードして、プロンプトを貼り付ける</b>
+        <p>Claude CodeなどのAIエージェントのチャットに、Zipファイルをドラッグ＆ドロップ。そのまま、コピーしたプロンプトを貼り付けて送信します。</p></div></div>
+      <div class="row"><div class="n">4</div><div class="t"><b>スキルの導入が始まる</b>
+        <p>あとはAIエージェントが進めます。<b>勝手にインストールはされません</b>——必ず「導入してよろしいですか？」の確認が入ります。</p></div></div>
     </div>
-    <p class="hint" style="margin:0 0 6px"><b>このページを見て自分で導入する人へ：</b>下の「案内文」は<b>人に配るときにコピーして送る文面</b>です。開いて読んだり、その手順を試したりする必要はありません。導入のしかたは <a href="#install" style="color:var(--gold);font-weight:800;text-decoration:none;border-bottom:2px solid var(--gold)">こちらの5ステップ</a> を見てください。</p>
     <details class="det">
-      <summary>配る人向け：送る案内文の中身を見る</summary>
+      <summary>導入プロンプトの中身を見る</summary>
       <div class="msgbox" style="margin-top:10px">
-<pre id="sendMsg">【AIニュースリサーチ｜Claude Codeスキル】
+<pre id="sendMsg">添付した my-ai-news-skill.zip を解凍して、中の「導入手順_ClaudeCodeに読ませる.md」を読み、その手順どおりに導入を進めてください。
 
-毎日のAI最新情報チェックを、Claude Codeに任せられるスキルです。
-あなたのXの「フォロー中」タイムラインを巡回して、その日のAIニュース
-（新ツール・新モデル・アップデート）を箇条書きにまとめてくれます。
-拾った投稿にはその場で「いいね」を付けるので、あとからスマホの
-「いいね一覧」でゆっくり読み返せます。
+■ 進め方のお願い
+・導入の前に、何をするスキルか／どこに入るか／何をしないかを説明してから、
+　「導入してよろしいですか？」と確認してください。
+　私が「はい」と答えるまではインストールしないでください。
+・私のOS（Mac / Windows）に合うコマンドを選んでください。
+・エラーが出たら、原因と次にやることを日本語で教えてください。
 
-■ 事前に必要なもの
-・Claude Code（Mac / Windows どちらでもOK）
-・Chrome拡張「Claude in Chrome」← これが無いと動きません
-・あなた自身のXアカウント
+■ 導入が終わったら
+・Chrome拡張「Claude in Chrome」が使える状態かを確認してください（これが無いと動きません）。
+・Claude Codeの再起動が必要かどうかを教えてください。
+・使い方（チャットで /my-ai-news と打つこと、初回に何を聞かれるか）をまとめてください。
 
-■ 導入のしかた
-1. Zipを解凍する
-2. 出てきた「my-ai-news-kit」フォルダの中の
-   「はじめにお読みください.md」を読む
-3. Claude Codeにこう頼む：
-   my-ai-news-kit フォルダの中の「導入手順_ClaudeCodeに読ませる.md」を
-   読んで、その手順どおりに進めてください。
-4. Claude Codeが内容を説明したあと「導入してよろしいですか？」と
-   聞いてくるので、OKなら「はい」と答える
-5. Claude Codeを再起動する
-
-■ 使い方
-チャットで /my-ai-news と打つだけ（「AIニュース調べて」でもOK）
-初回だけ、フォローするアカウントの提案などの質問があります。
-
-くわしい解説ページ（Zipもここから落とせます）：
+くわしい解説ページ：
 https://ryoya9595.github.io/my-ai-news/</pre>
       </div>
     </details>
-    <p class="hint">※ 導入で増えるのは <b class="tag-mono">.claude/skills/my-ai-news/</b> フォルダ1つだけ。既存のスキルや設定が消えることはありません。<br>※ このページのURLをそのまま送ってもOK。受け取った人が上のボタンからZipを落とせます。</p>
+    <p class="hint">※ 導入で増えるのは <b class="tag-mono">.claude/skills/my-ai-news/</b> フォルダ1つだけ。既存のスキルや設定が消えることはありません。<br>※ 人に渡すときは、このページのURLを送るだけでOK。受け取った人がここから同じ4ステップで導入できます。</p>
   </section>
 
   <section>
@@ -278,18 +274,13 @@ https://ryoya9595.github.io/my-ai-news/</pre>
 
   <section id="install">
     <h2>導入は<span style="color:var(--gold)">確認つき</span>。勝手には入らない。</h2>
-    <p class="sub">受け取った人のClaude Codeは、この順番でしか動きません。説明を聞いて「やめる」と言えば、そこで止まります。</p>
+    <p class="sub">プロンプトを送ったあと、Claude Codeはこの順番でしか動きません。説明を聞いて「やめる」と言えば、そこで止まります。</p>
     <div class="use">
-      <div class="row"><div class="n">1</div><div class="t"><b>Zipを解凍して、フォルダを置く</b>
-        <p>デスクトップでもダウンロードフォルダでもOK。</p></div></div>
-      <div class="row"><div class="n">2</div><div class="t"><b>Claude Codeに手順書を読ませる</b>
-        <p>フォルダをチャットにドラッグして、こう頼むのが確実。</p>
-        <code>導入手順_ClaudeCodeに読ませる.md を読んで、その手順どおりに進めてください</code></div></div>
-      <div class="row"><div class="n">3</div><div class="t"><b>Claude Codeが内容を説明する</b>
+      <div class="row"><div class="n">1</div><div class="t"><b>Claude Codeが内容を説明する</b>
         <p>何をするスキルか・どこに入るか・何をしないかを先に伝えます。</p></div></div>
-      <div class="row"><div class="n">4</div><div class="t"><b>「導入してよろしいですか？」と聞かれる</b>
+      <div class="row"><div class="n">2</div><div class="t"><b>「導入してよろしいですか？」と聞かれる</b>
         <p>「はい」と答えて初めてインストールされます。それ以外は何もしません。</p></div></div>
-      <div class="row"><div class="n">5</div><div class="t"><b>Chrome拡張のチェック → 再起動</b>
+      <div class="row"><div class="n">3</div><div class="t"><b>Chrome拡張のチェック → 再起動</b>
         <p>Claude in Chromeが使えるかを自動で確認。足りなければ案内が出ます。</p>
         <code>/my-ai-news</code></div></div>
     </div>
