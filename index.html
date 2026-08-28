@@ -169,12 +169,15 @@
 
   <section class="kit">
     <h2>この1式を、そのまま渡せる</h2>
-    <p class="sub">Zipをダウンロードして、下の案内文と一緒に送るだけ。受け取った人は、自分のClaude Codeに読ませれば導入できます。<b>勝手にインストールはされません</b>——必ず「導入していいですか？」の確認が入ります。</p>
+    <p class="sub">Zipをダウンロードして、案内文と一緒に送るだけ。受け取った人は、自分のClaude Codeに読ませれば導入できます。<b>勝手にインストールはされません</b>——必ず「導入していいですか？」の確認が入ります。</p>
     <div class="kit-actions">
       <a class="btn primary" href="my-ai-news-skill.zip" download>⬇ my-ai-news-skill.zip <span class="sz">約12KB</span></a>
       <button class="btn" id="copyMsg">📋 案内文をコピー</button>
     </div>
-    <div class="msgbox">
+    <p class="hint" style="margin:0 0 6px"><b>このページを見て自分で導入する人へ：</b>下の「案内文」は<b>人に配るときにコピーして送る文面</b>です。開いて読んだり、その手順を試したりする必要はありません。導入のしかたは <a href="#install" style="color:var(--gold);font-weight:800;text-decoration:none;border-bottom:2px solid var(--gold)">こちらの5ステップ</a> を見てください。</p>
+    <details class="det">
+      <summary>配る人向け：送る案内文の中身を見る</summary>
+      <div class="msgbox" style="margin-top:10px">
 <pre id="sendMsg">【AIニュースリサーチ｜Claude Codeスキル】
 
 毎日のAI最新情報チェックを、Claude Codeに任せられるスキルです。
@@ -205,7 +208,8 @@
 
 くわしい解説ページ（Zipもここから落とせます）：
 https://ryoya9595.github.io/my-ai-news/</pre>
-    </div>
+      </div>
+    </details>
     <p class="hint">※ 導入で増えるのは <b class="tag-mono">.claude/skills/my-ai-news/</b> フォルダ1つだけ。既存のスキルや設定が消えることはありません。<br>※ このページのURLをそのまま送ってもOK。受け取った人が上のボタンからZipを落とせます。</p>
   </section>
 
@@ -272,7 +276,7 @@ https://ryoya9595.github.io/my-ai-news/</pre>
     <div class="callout"><b>迷ったらこの8つ</b> — 公式4つ（ChatGPT／Anthropic／Claude／Manus）＋速報ラボ3つ（AGIラボ／Claude code研究ラボ／Codex研究ラボ）＋チャエン。ここまで入れておけば、1回スクロールするだけでその日のネタが揃います。</div>
   </section>
 
-  <section>
+  <section id="install">
     <h2>導入は<span style="color:var(--gold)">確認つき</span>。勝手には入らない。</h2>
     <p class="sub">受け取った人のClaude Codeは、この順番でしか動きません。説明を聞いて「やめる」と言えば、そこで止まります。</p>
     <div class="use">
@@ -336,7 +340,7 @@ https://ryoya9595.github.io/my-ai-news/</pre>
     var btn=document.getElementById(btnId), msg=document.getElementById(preId);
     if(!btn||!msg)return;
     btn.addEventListener('click',function(){
-      var text=msg.innerText;
+      var text=msg.textContent||msg.innerText;
       var ok=function(){var o=btn.innerHTML;btn.textContent='\u2713 \u30b3\u30d4\u30fc\u3057\u307e\u3057\u305f';setTimeout(function(){btn.innerHTML=o;},1700);};
       var fb=function(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.focus();ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);ok();};
       if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(ok,fb);}else{fb();}
