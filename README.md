@@ -54,3 +54,16 @@ rm -f my-ai-news-skill.zip
 zip -r -X my-ai-news-skill.zip my-ai-news-kit -x "*.DS_Store"
 git add -A && git commit -m "update skill" && git push
 ```
+
+---
+
+## 顧客向けキット（Dacoon / 個別相談まわり）
+
+同じ「Zipを渡して Claude Code に読ませる」形式で、顧客環境に導入してもらうキット。どちらも `はじめにお読みください.md` → `事前準備ガイド.md`（本人がアカウント設定）→ `導入手順_ClaudeCodeに読ませる.md`（Claude Code が残りを実行）の順。
+
+| フォルダ | 何を作るか | 動く場所 |
+|---|---|---|
+| `yoyaku-kit/` | LINE内で完結する相談予約フォーム。Googleカレンダー登録（Meet付き）・台帳スプシ追記（流入経路つき）・LINE確認＆前日リマインド。エルメと共存 | LIFF + GAS + Vercel |
+| `ig-dm-kit/` | 日本時間 10/14/17/19時に Instagram DM を確認し、要対応だけ返信案付きで LINE 通知 | Claude クラウドルーティン |
+
+面談で見せる操作デモ：`yoyaku-kit/demo/yoyaku-liff-demo.html`
