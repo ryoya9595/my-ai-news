@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>無料相談のご予約</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="./config.js"></script>
+<style>
+  :root{
+    --bg:#FFFFFF; --soft:#F3F5F6; --ink:#1B1F23; --muted:#6B7378; --line:#E5E8EA; --line-strong:#CDD3D6;
+    --accent:#0E7490; --accent-soft:#DDF1F6; --accent-ink:#0B5C72; --ok:#1E7A46; --ok-soft:#DCF3E4; --ng:#B42318; --ng-soft:#FDECEA;
+    --sans:"Noto Sans JP",system-ui,-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+    --display:"Zen Kaku Gothic New","Noto Sans JP",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased}
+  h1,h2{font-family:var(--display);margin:0;line-height:1.3}
+  p{margin:0}
+  button{font-family:inherit;cursor:pointer}
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+  .app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:16px 18px calc(20px + env(safe-area-inset-bottom));gap:16px}
+
+  .host{display:flex;gap:12px;align-items:center}
+  .host .av{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#F2B6A0);flex:none}
+  .host h1{font-size:17px;font-weight:700}
+  .host p{font-size:12.5px;color:var(--muted)}
+
+  .steps{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+  .steps span{padding:3px 9px;border-radius:999px;background:var(--soft)}
+  .steps span.on{background:var(--accent);color:#fff;font-weight:700}
+  .steps i{font-style:normal;color:var(--line-strong)}
+
+  .sec-title{font-size:13.5px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+  .sec-title small{font-weight:500;color:var(--muted);font-size:12px}
+
+  .cal{border:1px solid var(--line);border-radius:14px;padding:12px 10px 10px}
+  .cal-head{display:flex;justify-content:space-between;align-items:center;padding:0 6px 10px;font-weight:700;font-size:15px}
+  .cal-head button{border:0;background:var(--soft);width:32px;height:32px;border-radius:8px;color:var(--ink);font-size:16px}
+  .cal-head button[disabled]{opacity:.35;cursor:default}
+  .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;font-variant-numeric:tabular-nums}
+  .dow{text-align:center;font-size:11px;color:var(--muted);padding-bottom:4px}
+  .dow.sat{color:#4A78B8}.dow.sun{color:#C2534E}
+  .day{aspect-ratio:1;border:0;background:transparent;border-radius:10px;font-size:14.5px;color:var(--ink);position:relative;display:flex;align-items:center;justify-content:center;font-weight:500}
+  .day.off{color:var(--line-strong);cursor:default}
+  .day.ok::after{content:"";position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.7}
+  .day.ok:active{background:var(--soft)}
+  .day.on{background:var(--accent);color:#fff;font-weight:700}
+  .day.on::after{background:#fff}
+  .day.today{box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+
+  .slots{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .slot{border:1px solid var(--line-strong);background:var(--bg);border-radius:10px;padding:11px 0;font-size:15px;font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .slot.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .slot-note{font-size:12px;color:var(--muted)}
+
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:13px;font-weight:700}
+  .field label small{font-weight:500;color:var(--muted);margin-left:6px}
+  .field input,.field select,.field textarea{font:inherit;font-size:16px;border:1px solid var(--line-strong);border-radius:10px;padding:11px 12px;background:var(--bg);color:var(--ink);width:100%}
+  .field textarea{min-height:96px;resize:vertical}
+  .field .ro{font-size:14px;padding:11px 12px;border-radius:10px;background:var(--soft)}
+  .hint{font-size:12px;color:var(--muted);line-height:1.6}
+  .route{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-ink);background:var(--accent-soft);border-radius:999px;padding:3px 10px;font-weight:700;align-self:flex-start}
+  .route b{font-weight:500;color:var(--muted)}
+
+  .summary{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:0}
+  .summary div{display:grid;grid-template-columns:88px 1fr;gap:12px;padding:11px 14px;border-top:1px solid var(--line);font-size:14px}
+  .summary div:first-child{border-top:0}
+  .summary dt{color:var(--muted);font-weight:500}
+  .summary dd{margin:0;font-weight:700;word-break:break-all}
+
+  .cta{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:8px}
+  .btn{border:0;border-radius:12px;padding:15px;font-size:16px;font-weight:700;background:var(--accent);color:#fff;width:100%}
+  .btn[disabled]{background:var(--line);color:var(--muted);cursor:default}
+  .btn.ghost{background:transparent;color:var(--muted);font-weight:500;padding:8px}
+
+  .done{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding-top:28px}
+  .done .check{width:68px;height:68px;border-radius:50%;background:var(--ok-soft);display:grid;place-items:center}
+  .done h2{font-size:19px}
+  .done p{font-size:13.5px;color:var(--muted)}
+  .done .summary{width:100%;text-align:left}
+
+  .msg{border-radius:12px;padding:12px 14px;font-size:13.5px;line-height:1.6}
+  .msg.err{background:var(--ng-soft);color:var(--ng)}
+  .msg.info{background:var(--soft);color:var(--muted)}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;flex:1;text-align:center;color:var(--muted)}
+  .spinner{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.spinner{animation:none}}
+</style>
+</head>
+<body>
+<div class="app" id="app"><div class="center"><div class="spinner" aria-hidden="true"></div><p>読み込み中…</p></div></div>
+
+<script>
+(function(){
+  var C = window.YOYAKU_CONFIG || {};
+  if (C.ACCENT) document.documentElement.style.setProperty('--accent', C.ACCENT);
+  var DOW = ['日','月','火','水','木','金','土'];
+  var app = document.getElementById('app');
+
+  var state = {
+    step: 1, month: null, days: {}, date: null, time: null,
+    name: '', topic: (C.TOPICS||[''])[0], note: '', src: 'other',
+    profile: null, slotMinutes: 60, loading: false, error: '', done: null
+  };
+
+  // ---- utils ----
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function pad(n){ return (n<10?'0':'')+n; }
+  function ymd(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function parse(iso){ var p=iso.split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
+  function fmtJa(iso){ var d=parse(iso); return (d.getMonth()+1)+'月'+d.getDate()+'日（'+DOW[d.getDay()]+'）'; }
+  function endOf(t){ var h=parseInt(t.slice(0,2),10), m=parseInt(t.slice(3,5),10); var tot=h*60+m+state.slotMinutes; return pad(Math.floor(tot/60))+':'+pad(tot%60); }
+  function monthKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1); }
+  function firstAvailableDate(){ var ks=Object.keys(state.days).sort(); return ks[0]||null; }
+
+  // ---- source (?src=) ----
+  function readSrc(){
+    var q = new URLSearchParams(location.search);
+    var s = q.get('src');
+    if (!s && window.liff && liff.state) { try { s = new URLSearchParams(liff.state.replace(/^\?/, '')).get('src'); } catch(e){} }
+    if (!s) { try { var st = q.get('liff.state'); if (st) s = new URLSearchParams(st.replace(/^\?/, '')).get('src'); } catch(e){} }
+    state.src = (s && C.ROUTES && C.ROUTES[s]) ? s : 'other';
+  }
+  function routeLabel(){ return (C.ROUTES && C.ROUTES[state.src]) || state.src; }
+
+  // ---- API ----
+  function api(params){
+    var u = C.API_URL + (C.API_URL.indexOf('?')>=0?'&':'?') + new URLSearchParams(params).toString();
+    return fetch(u, { method:'GET', redirect:'follow' }).then(function(r){ return r.json(); });
+  }
+  function apiPost(body){
+    // Content-Type を付けない（text/plain 扱い）ことで GAS へのクロスオリジンPOSTが通る
+    return fetch(C.API_URL, { method:'POST', redirect:'follow', body: JSON.stringify(body) }).then(function(r){ return r.json(); });
+  }
+  function loadSlots(){
+    state.loading = true; state.error=''; render();
+    var from = new Date(); from.setHours(0,0,0,0);
+    return api({ action:'slots', from: ymd(from) }).then(function(res){
+      if (!res.ok) throw new Error(res.error||'空き枠を取得できませんでした');
+      state.days = res.days || {};
+      if (res.settings && res.settings.slotMinutes) state.slotMinutes = res.settings.slotMinutes;
+      var f = firstAvailableDate();
+      state.month = f ? monthKey(parse(f)) : monthKey(new Date());
+      state.loading = false; render();
+    }).catch(function(e){ state.loading=false; state.error = e.message || String(e); render(); });
+  }
+
+  // ---- views ----
+  function hostHtml(){
+    return '<div class="host"><div class="av" aria-hidden="true"></div><div><h1>'+esc(C.SERVICE_NAME||'ご予約')+'</h1><p>'+esc(C.HOST_NAME? C.HOST_NAME+'　' : '')+esc(C.SERVICE_NOTE||'')+'</p></div></div>';
+  }
+  function stepsHtml(n){
+    var names=['日時','入力','確認'];
+    return '<div class="steps" aria-label="手順">'+names.map(function(s,i){ return (i?'<i aria-hidden="true">›</i>':'')+'<span class="'+(i+1===n?'on':'')+'">'+(i+1)+' '+s+'</span>'; }).join('')+'</div>';
+  }
+  function calendarHtml(){
+    var y=+state.month.slice(0,4), m=+state.month.slice(5,7);
+    var first=new Date(y,m-1,1), days=new Date(y,m,0).getDate(), today=ymd(new Date());
+    var cells=DOW.map(function(d,i){ return '<div class="dow '+(i===0?'sun':i===6?'sat':'')+'">'+d+'</div>'; }).join('');
+    for (var i=0;i<first.getDay();i++) cells+='<div></div>';
+    for (var d=1; d<=days; d++){
+      var iso=state.month+'-'+pad(d), ok=!!state.days[iso];
+      cells+='<button type="button" class="day '+(ok?'ok':'off')+(iso===state.date?' on':'')+(iso===today?' today':'')+'" data-date="'+iso+'" aria-label="'+fmtJa(iso)+(ok?'':'（受付なし）')+'"'+(ok?'':' disabled')+'>'+d+'</button>';
+    }
+    var keys=Object.keys(state.days).sort();
+    var minM=keys.length?keys[0].slice(0,7):state.month, maxM=keys.length?keys[keys.length-1].slice(0,7):state.month;
+    return '<div class="cal"><div class="cal-head"><button type="button" data-nav="-1" aria-label="前の月"'+(state.month<=minM?' disabled':'')+'>‹</button><span>'+y+'年'+m+'月</span><button type="button" data-nav="1" aria-label="次の月"'+(state.month>=maxM?' disabled':'')+'>›</button></div><div class="grid">'+cells+'</div></div>';
+  }
+  function slotsHtml(){
+    if (!state.date) return '<p class="slot-note">日付を選ぶと、空いている時間が表示されます。</p>';
+    var list=state.days[state.date]||[];
+    return '<div class="sec-title">'+fmtJa(state.date)+' の空き時間 <small>'+state.slotMinutes+'分枠</small></div><div class="slots">'
+      + list.map(function(t){ return '<button type="button" class="slot'+(t===state.time?' on':'')+'" data-time="'+t+'">'+t+'</button>'; }).join('')
+      + '</div>';
+  }
+  function summaryHtml(){
+    return '<dl class="summary">'
+      + '<div><dt>日時</dt><dd>'+fmtJa(state.date)+' '+state.time+'〜'+endOf(state.time)+'</dd></div>'
+      + '<div><dt>お名前</dt><dd>'+esc(state.name)+'</dd></div>'
+      + '<div><dt>ご相談</dt><dd>'+esc(state.topic)+'</dd></div>'
+      + '<div><dt>参加方法</dt><dd>Google Meet</dd></div>'
+      + '</dl>';
+  }
+  function render(){
+    var html='';
+    if (state.loading){ html = hostHtml()+'<div class="center"><div class="spinner" aria-hidden="true"></div><p>空き状況を確認しています…</p></div>'; }
+    else if (state.error && state.step===1 && !Object.keys(state.days).length){
+      html = hostHtml()+'<div class="msg err">'+esc(state.error)+'</div><div class="cta"><button type="button" class="btn" data-act="reload">もう一度読み込む</button></div>';
+    }
+    else if (state.done){
+      var d=state.done;
+      html = '<div class="done"><div class="check" aria-hidden="true"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>'
+        + '<h2>ご予約を受け付けました</h2>'
+        + '<p>'+(d.linePushed?'LINEに確認メッセージをお送りしました。<br>このまま画面を閉じていただいて大丈夫です。':'確認メッセージはLINEでお送りします。')+'</p>'
+        + summaryHtml()
+        + (d.meetUrl?'<p class="hint">Google Meet：<br>'+esc(d.meetUrl)+'</p>':'')
+        + '</div><div class="cta"><button type="button" class="btn" data-act="close">閉じる</button></div>';
+    }
+    else if (state.step===1){
+      html = hostHtml()+stepsHtml(1)
+        + (state.error?'<div class="msg err">'+esc(state.error)+'</div>':'')
+        + (Object.keys(state.days).length ? '<div class="sec-title">ご希望の日付</div>'+calendarHtml()+slotsHtml()
+                                          : '<div class="msg info">ただいま受付可能な枠がありません。日を改めてお試しください。</div>')
+        + '<div class="cta"><button type="button" class="btn" data-act="next"'+(state.date&&state.time?'':' disabled')+'>この日時で進む</button></div>';
+    }
+    else if (state.step===2){
+      html = hostHtml()+stepsHtml(2)
+        + '<div class="field"><label for="f-name">お名前</label><input id="f-name" value="'+esc(state.name)+'" autocomplete="name" placeholder="山田 花子"></div>'
+        + '<div class="field"><label for="f-topic">ご相談内容</label><select id="f-topic">'+(C.TOPICS||[]).map(function(t){ return '<option'+(t===state.topic?' selected':'')+'>'+esc(t)+'</option>'; }).join('')+'</select></div>'
+        + '<div class="field"><label for="f-note">今のお悩み<small>任意</small></label><textarea id="f-note" placeholder="今の状況や、聞いてみたいことがあればお書きください">'+esc(state.note)+'</textarea></div>'
+        + '<div class="field"><label>参加方法</label><div class="ro">Google Meet（予約後にURLをLINEでお送りします）</div></div>'
+        + (state.src!=='other' ? '<span class="route"><b>経由</b> '+esc(routeLabel())+'</span>' : '')
+        + '<div class="cta"><button type="button" class="btn" data-act="next">確認画面へ</button><button type="button" class="btn ghost" data-act="back">日時を選び直す</button></div>';
+    }
+    else {
+      html = hostHtml()+stepsHtml(3)+'<div class="sec-title">この内容で予約します</div>'+summaryHtml()
+        + (state.error?'<div class="msg err">'+esc(state.error)+'</div>':'')
+        + '<p class="hint">「予約する」を押すと、確認メッセージがLINEに届きます。</p>'
+        + '<div class="cta"><button type="button" class="btn" data-act="submit"'+(state.submitting?' disabled':'')+'>'+(state.submitting?'送信中…':'予約する')+'</button><button type="button" class="btn ghost" data-act="back">入力に戻る</button></div>';
+    }
+    app.innerHTML = html;
+    window.scrollTo(0,0);
+  }
+  function readForm(){
+    var n=document.getElementById('f-name'); if(n) state.name=n.value.trim();
+    var t=document.getElementById('f-topic'); if(t) state.topic=t.value;
+    var o=document.getElementById('f-note'); if(o) state.note=o.value.trim();
+  }
+
+  app.addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b||b.disabled) return;
+    if (b.dataset.date){ state.date=b.dataset.date; state.time=null; render(); return; }
+    if (b.dataset.time){ state.time=b.dataset.time; render(); return; }
+    if (b.dataset.nav){ var y=+state.month.slice(0,4), m=+state.month.slice(5,7)+(+b.dataset.nav); var d=new Date(y,m-1,1); state.month=monthKey(d); render(); return; }
+    var act=b.dataset.act;
+    if (act==='reload'){ loadSlots(); }
+    else if (act==='next'){
+      if (state.step===2){ readForm(); if(!state.name){ state.error='お名前を入力してください'; render(); return; } }
+      state.error=''; state.step++; render();
+    }
+    else if (act==='back'){ readForm(); state.error=''; state.step--; render(); }
+    else if (act==='submit'){ submit(); }
+    else if (act==='close'){ if (window.liff && liff.isInClient && liff.isInClient()) liff.closeWindow(); else location.reload(); }
+  });
+
+  function submit(){
+    state.submitting=true; state.error=''; render();
+    apiPost({
+      action:'book', date:state.date, time:state.time, name:state.name, topic:state.topic, note:state.note, src:state.src,
+      lineUserId: state.profile ? state.profile.userId : '', displayName: state.profile ? state.profile.displayName : ''
+    }).then(function(res){
+      state.submitting=false;
+      if (!res.ok){
+        state.error = res.error || '予約できませんでした。時間をおいてお試しください';
+        if (res.code==='slot_taken'){ state.step=1; state.time=null; render(); loadSlots(); return; }
+        render(); return;
+      }
+      state.done = res; render();
+    }).catch(function(e){ state.submitting=false; state.error='通信に失敗しました。電波の良いところでもう一度お試しください'; render(); });
+  }
+
+  // ---- boot ----
+  function boot(){
+    readSrc();
+    if (!C.API_URL){ app.innerHTML='<div class="center"><p>設定が未完了です（API_URL）。<br>config.js を確認してください。</p></div>'; return; }
+    if (!C.LIFF_ID || !window.liff){ if (C.REQUIRE_LINE_LOGIN && C.LIFF_ID) { /* SDK未ロード */ } loadSlots(); return; }
+    liff.init({ liffId: C.LIFF_ID }).then(function(){
+      if (liff.isLoggedIn()){
+        return liff.getProfile().then(function(p){ state.profile=p; if(!state.name) state.name=p.displayName||''; });
+      }
+      if (C.REQUIRE_LINE_LOGIN){ liff.login({ redirectUri: location.href }); return new Promise(function(){}); }
+    }).then(function(){ loadSlots(); })
+      .catch(function(e){ console.error(e); loadSlots(); });
+  }
+  boot();
+})();
+</script>
+</body>
+</html>
