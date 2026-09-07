@@ -323,6 +323,26 @@ function installReminderTrigger() {
   return 'sendReminders を毎日 ' + s.reminderHour + '時 に実行するトリガーを作成しました';
 }
 
+/**
+ * 秘密情報以外の設定に初期値を入れる（未設定のものだけ。既存の値は上書きしない）。
+ * clasp で置いた直後に一度実行すると、手で入れるのは CALENDAR_ID / SHEET_ID / LINE_CHANNEL_ACCESS_TOKEN / HOST_NAME だけで済む。
+ */
+function applyDefaultConfig() {
+  var defaults = {
+    SERVICE_NAME: '無料相談（60分）', BUSINESS_START: '10', BUSINESS_END: '18', LUNCH_START: '12', LUNCH_END: '13',
+    SLOT_MINUTES: '60', WEEKDAYS: '1,2,3,4,5', DAYS_AHEAD: '30', MIN_LEAD_HOURS: '24', REMINDER_HOUR: '18', SHEET_NAME: '予約台帳'
+  };
+  var props = PropertiesService.getScriptProperties();
+  var set = [];
+  Object.keys(defaults).forEach(function (k) {
+    if (!props.getProperty(k)) { props.setProperty(k, defaults[k]); set.push(k); }
+  });
+  var missing = ['CALENDAR_ID', 'SHEET_ID', 'LINE_CHANNEL_ACCESS_TOKEN', 'HOST_NAME'].filter(function (k) { return !props.getProperty(k); });
+  var msg = '初期値を入れた項目: ' + (set.join(', ') || 'なし') + '\n手で入れる必要がある項目: ' + (missing.join(', ') || 'なし（すべて設定済み）');
+  Logger.log(msg);
+  return msg;
+}
+
 /** 設定とカレンダー・シート・LINEの疎通を一度に確認する（エディタから実行） */
 function selfCheck() {
   var s = settings();

@@ -67,3 +67,21 @@ git add -A && git commit -m "update skill" && git push
 | `dm-watch/` | **DMウォッチシステム**。日本時間 10/14/17/19時に Instagram DM を確認し、要対応だけ返信案付きで LINE 通知 | Claude クラウドルーティン |
 
 面談で見せる操作デモ：`soudan-yoyaku/demo/yoyaku-liff-demo.html`
+
+### 顧客に渡す導入プロンプト（AIエージェントに貼るだけ）
+
+```
+https://github.com/ryoya9595/my-ai-news の「dm-watch」フォルダにある「導入手順_ClaudeCodeに読ませる.md」を読んで、その手順どおりに進めてください。リポジトリはcloneして構いません。
+```
+```
+https://github.com/ryoya9595/my-ai-news の「soudan-yoyaku」フォルダにある「導入手順_ClaudeCodeに読ませる.md」を読んで、その手順どおりに進めてください。リポジトリはcloneして構いません。
+```
+
+AIが clone → 説明 → 確認 → 画面操作（Claude in Chrome があれば）→ 配置・公開・ルーティン作成まで進める。人がやるのはログインとトークンの貼り付けだけ。Zip で渡す場合は `dm-watch-system.zip` / `soudan-yoyaku-system.zip`。
+
+Zipの作り直し：
+```bash
+rm -f dm-watch-system.zip soudan-yoyaku-system.zip
+zip -r -X dm-watch-system.zip dm-watch -x "*.DS_Store" "*/__pycache__/*"
+zip -r -X soudan-yoyaku-system.zip soudan-yoyaku -x "*.DS_Store"
+```
