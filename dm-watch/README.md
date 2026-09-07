@@ -1,4 +1,4 @@
-# ig-dm-kit — Instagram DM チェック → LINE通知
+# DMウォッチシステム（dm-watch）
 
 決まった時刻（日本時間 10 / 14 / 17 / 19時）に Instagram の新着DMを確認し、対応が必要なものだけ返信案付きで LINE に通知する。Claude のクラウドルーティンで動くので、PC・スマホは閉じていてよい。
 

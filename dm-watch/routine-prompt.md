@@ -1,7 +1,7 @@
-# ルーティンに貼るプロンプト（Instagram DM チェック → LINE通知）
+# ルーティンに貼るプロンプト（DMウォッチシステム）
 
 Claude Code の「ルーティン」に、下の `---` から `---` までを**そのまま貼り付け**てください。
-リポジトリにこのキット（`ig-dm-kit/`）が入っている前提です。
+リポジトリにこのキット（`dm-watch/`）が入っている前提です。
 
 - cron: `0 1,5,8,10 * * *`（UTC。日本時間の 10時・14時・17時・19時）
 - 環境: API credentials に `graph.instagram.com` と `api.line.me` を登録した環境
@@ -10,17 +10,17 @@ Claude Code の「ルーティン」に、下の `---` から `---` までを**�
 ---
 
 あなたは Instagram のDMを定時に確認して、対応が必要なものを LINE で知らせる担当です。
-リポジトリの `ig-dm-kit/` にスクリプトがあります。次の順番で進めてください。
+リポジトリの `dm-watch/` にスクリプトがあります。次の順番で進めてください。
 
 ## 1. 新着DMを取得する
 
 ```
-python3 ig-dm-kit/scripts/fetch_dms.py --hours 4.5 --state ig-dm-kit/state/ig_seen.json
+python3 dm-watch/scripts/fetch_dms.py --hours 4.5 --state dm-watch/state/ig_seen.json
 ```
 
 - 出力は JSON。`ok` が `false` なら **その `error` を1行で LINE に送って終了**する（原因は担当者が調べる）。
   ```
-  python3 ig-dm-kit/scripts/send_line.py --text "⚠️ Instagram DMチェックが失敗しました: <error>"
+  python3 dm-watch/scripts/send_line.py --text "⚠️ Instagram DMチェックが失敗しました: <error>"
   ```
 - `count` が **0 なら何も送らずに終了**する（「新着なし」の通知は送らない。無料枠の節約のため）。
 
@@ -61,16 +61,16 @@ python3 ig-dm-kit/scripts/fetch_dms.py --hours 4.5 --state ig-dm-kit/state/ig_se
 - 要約は本文をそのまま貼らず、1行に圧縮する（個人情報は必要最小限）
 - 送信：
   ```
-  python3 ig-dm-kit/scripts/send_line.py --file /tmp/ig_dm_message.txt
+  python3 dm-watch/scripts/send_line.py --file /tmp/ig_dm_message.txt
   ```
   （本文をいったん `/tmp/ig_dm_message.txt` に書いてから送る）
 
 ## 4. 通知済みIDを記録する（リポジトリに push できる場合）
 
-`ig-dm-kit/state/ig_seen.json` が更新されているので、コミットして push する。
+`dm-watch/state/ig_seen.json` が更新されているので、コミットして push する。
 
 ```
-git add ig-dm-kit/state/ig_seen.json
+git add dm-watch/state/ig_seen.json
 git commit -m "ig-dm: 通知済みIDを更新"
 git push
 ```

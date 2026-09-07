@@ -63,7 +63,7 @@ git add -A && git commit -m "update skill" && git push
 
 | フォルダ | 何を作るか | 動く場所 |
 |---|---|---|
-| `yoyaku-kit/` | LINE内で完結する相談予約フォーム。Googleカレンダー登録（Meet付き）・台帳スプシ追記（流入経路つき）・LINE確認＆前日リマインド。エルメと共存 | LIFF + GAS + Vercel |
-| `ig-dm-kit/` | 日本時間 10/14/17/19時に Instagram DM を確認し、要対応だけ返信案付きで LINE 通知 | Claude クラウドルーティン |
+| `soudan-yoyaku/` | **相談予約システム**。LINE内で完結する予約フォーム。Googleカレンダー登録（Meet付き）・台帳スプシ追記（流入経路つき）・LINE確認＆前日リマインド。エルメと共存 | LIFF + GAS + Vercel |
+| `dm-watch/` | **DMウォッチシステム**。日本時間 10/14/17/19時に Instagram DM を確認し、要対応だけ返信案付きで LINE 通知 | Claude クラウドルーティン |
 
-面談で見せる操作デモ：`yoyaku-kit/demo/yoyaku-liff-demo.html`
+面談で見せる操作デモ：`soudan-yoyaku/demo/yoyaku-liff-demo.html`

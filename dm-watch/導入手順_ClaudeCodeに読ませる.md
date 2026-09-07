@@ -1,4 +1,4 @@
-# 【Claude Codeへの指示】Instagram DM チェック → LINE通知 の導入
+# 【Claude Codeへの指示】DMウォッチシステムの導入
 
 このファイルを読んだAIへ。以下の手順で進めてください。
 
@@ -8,7 +8,7 @@
 > ⚠️ **重要②：既存のデータ・設定を絶対に消さないこと。**
 > - `rm` / `rm -rf` / `mv` は使わない
 > - 担当者のPCにある他のフォルダ・リポジトリ・ファイルには触らない
-> - 既存のリポジトリに置く場合も、他のファイルは変更しない（`ig-dm-kit/` を追加するだけ）
+> - 既存のリポジトリに置く場合も、他のファイルは変更しない（`dm-watch/` を追加するだけ）
 >
 > ⚠️ **重要③：トークンを扱わない。**
 > - Instagram / LINE のトークンを、チャットに貼らせない・ファイルに書かない・コミットしない
@@ -44,7 +44,7 @@
 
 ## ステップ1：作業してよいか確認を取る
 
-> 「これから `ig-dm-kit` フォルダを GitHub の非公開リポジトリに置きます（新規作成、または既存のリポジトリに追加）。進めてよろしいですか？（はい／いいえ）」
+> 「これから `dm-watch` フォルダを GitHub の非公開リポジトリに置きます（新規作成、または既存のリポジトリに追加）。進めてよろしいですか？（はい／いいえ）」
 
 「はい」以外なら進めない。
 
@@ -54,20 +54,20 @@
 
 ### 2-A. 既存のリポジトリに追加する場合
 1. そのリポジトリをローカルに clone 済みか確認（なければ `git clone`）
-2. `ig-dm-kit/` フォルダをリポジトリ直下にコピー（**他のファイルには触らない**）
+2. `dm-watch/` フォルダをリポジトリ直下にコピー（**他のファイルには触らない**）
 
    **Mac / Linux**
    ```
-   cp -R "<このキットのパス>/ig-dm-kit" "<リポジトリのパス>/ig-dm-kit"
+   cp -R "<このキットのパス>/dm-watch" "<リポジトリのパス>/dm-watch"
    ```
    **Windows（PowerShell）**
    ```
-   Copy-Item -Recurse "<このキットのパス>\ig-dm-kit" "<リポジトリのパス>\ig-dm-kit"
+   Copy-Item -Recurse "<このキットのパス>\dm-watch" "<リポジトリのパス>\dm-watch"
    ```
-3. `ig-dm-kit/demo/` があれば不要なので**コピーしなくてよい**（削除はしない）
+3. `dm-watch/demo/` があれば不要なので**コピーしなくてよい**（削除はしない）
 4. コミットして push
    ```
-   git add ig-dm-kit
+   git add dm-watch
    git commit -m "Instagram DMチェックキットを追加"
    git push
    ```
@@ -80,8 +80,8 @@
    ```
    mkdir -p ~/ig-dm-notify && cd ~/ig-dm-notify
    git init
-   cp -R "<このキットのパス>/ig-dm-kit" ./ig-dm-kit
-   git add ig-dm-kit
+   cp -R "<このキットのパス>/dm-watch" ./dm-watch
+   git add dm-watch
    git commit -m "Instagram DMチェックキットを追加"
    git branch -M main
    git remote add origin https://github.com/<ユーザー名>/ig-dm-notify.git
@@ -91,8 +91,8 @@
    ```
    New-Item -ItemType Directory -Force "$HOME\ig-dm-notify"; Set-Location "$HOME\ig-dm-notify"
    git init
-   Copy-Item -Recurse "<このキットのパス>\ig-dm-kit" ".\ig-dm-kit"
-   git add ig-dm-kit
+   Copy-Item -Recurse "<このキットのパス>\dm-watch" ".\dm-watch"
+   git add dm-watch
    git commit -m "Instagram DMチェックキットを追加"
    git branch -M main
    git remote add origin https://github.com/<ユーザー名>/ig-dm-notify.git
@@ -102,9 +102,9 @@
 
 ### 2-C. 確認
 ```
-git ls-files ig-dm-kit
+git ls-files dm-watch
 ```
-`ig-dm-kit/scripts/fetch_dms.py` と `ig-dm-kit/scripts/send_line.py` と `ig-dm-kit/routine-prompt.md` が含まれていればOK。
+`dm-watch/scripts/fetch_dms.py` と `dm-watch/scripts/send_line.py` と `dm-watch/routine-prompt.md` が含まれていればOK。
 
 ## ステップ3：接続テスト（任意）
 
@@ -115,14 +115,14 @@ git ls-files ig-dm-kit
 **Mac / Linux**
 ```
 cd "<リポジトリのパス>"
-IG_ACCESS_TOKEN="ここに自分で貼る" python3 ig-dm-kit/scripts/fetch_dms.py --self-test
-LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る" python3 ig-dm-kit/scripts/send_line.py --self-test
+IG_ACCESS_TOKEN="ここに自分で貼る" python3 dm-watch/scripts/fetch_dms.py --self-test
+LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る" python3 dm-watch/scripts/send_line.py --self-test
 ```
 **Windows（PowerShell）**
 ```
 Set-Location "<リポジトリのパス>"
-$env:IG_ACCESS_TOKEN="ここに自分で貼る"; python ig-dm-kit\scripts\fetch_dms.py --self-test
-$env:LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る"; python ig-dm-kit\scripts\send_line.py --self-test
+$env:IG_ACCESS_TOKEN="ここに自分で貼る"; python dm-watch\scripts\fetch_dms.py --self-test
+$env:LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る"; python dm-watch\scripts\send_line.py --self-test
 ```
 
 - 両方 `"ok": true` ならOK
@@ -136,11 +136,11 @@ $env:LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る"; python ig-dm-kit\scri
 ## ステップ4：ルーティン作成を案内する（担当者が操作）
 
 `事前準備ガイド.md` の STEP 6 の表を読み上げて、担当者に claude.ai/code でルーティンを作ってもらう。
-プロンプトは `ig-dm-kit/routine-prompt.md` の `---` の間の部分。担当者が貼り付けやすいように、その部分を**コードブロックで表示**してあげる。
+プロンプトは `dm-watch/routine-prompt.md` の `---` の間の部分。担当者が貼り付けやすいように、その部分を**コードブロックで表示**してあげる。
 
 ポイントとして伝えること：
 - スケジュールは **UTC**。`0 1,5,8,10 * * *` が日本時間の 10/14/17/19時
-- リポジトリのブランチへの **push を許可**すると、通知済みの記録（`ig-dm-kit/state/ig_seen.json`）が残り、同じDMを2回通知しなくなる
+- リポジトリのブランチへの **push を許可**すると、通知済みの記録（`dm-watch/state/ig_seen.json`）が残り、同じDMを2回通知しなくなる
 - コネクタ（Gmail 等）は**選ばない**
 
 ## ステップ5：初回実行と確認
@@ -165,7 +165,7 @@ $env:LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る"; python ig-dm-kit\scri
 | 変えたいこと | どこを変える |
 |---|---|
 | 確認する時刻 | ルーティンのスケジュール（UTCで。日本時間 −9時間） |
-| 判定の基準・LINEの文面 | `ig-dm-kit/routine-prompt.md` を編集 → ルーティンのプロンプトに貼り直す |
+| 判定の基準・LINEの文面 | `dm-watch/routine-prompt.md` を編集 → ルーティンのプロンプトに貼り直す |
 | 拾う時間幅 | 環境変数 `IG_WINDOW_HOURS`（実行間隔より少し長くしておく） |
 | 通知先を増やす | `send_line.py` を宛先ごとに呼ぶようにプロンプトを修正（1通が人数分カウントされる点に注意） |
 
@@ -174,6 +174,6 @@ $env:LINE_CHANNEL_ACCESS_TOKEN="ここに自分で貼る"; python ig-dm-kit\scri
 担当者から**明確に「止めて」「消して」と言われたときだけ**：
 1. ルーティンを無効化または削除（claude.ai/code から、担当者が操作）
 2. 必要なら、環境の API credentials から `Instagram` と `LINE` を削除（担当者が操作）
-3. 必要なら、リポジトリから `ig-dm-kit/` を削除（他のファイルには触らない）
+3. 必要なら、リポジトリから `dm-watch/` を削除（他のファイルには触らない）
 
 **Instagram のアカウント・Meta のアプリ・LINE公式アカウントは消さない**（担当者の判断で別途）。
