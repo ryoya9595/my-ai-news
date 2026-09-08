@@ -20,7 +20,7 @@ var CONFIG_KEYS = {
   SHEET_ID: 'SHEET_ID',                             // 申し込み台帳のスプレッドシートID
   SHEET_NAME: 'SHEET_NAME',                         // シート名（省略時 "予約台帳"）
   LINE_CHANNEL_ACCESS_TOKEN: 'LINE_CHANNEL_ACCESS_TOKEN', // Messaging API のチャネルアクセストークン
-  HOST_NAME: 'HOST_NAME',                           // 例: 宮田陽子
+  HOST_NAME: 'HOST_NAME',                           // お客様への確認メッセージに差出人として表示される名前
   SERVICE_NAME: 'SERVICE_NAME',                     // 例: 無料相談（60分）
   BUSINESS_START: 'BUSINESS_START',                 // 例: 10  （開始時）
   BUSINESS_END: 'BUSINESS_END',                     // 例: 18  （この時刻に終わる枠まで。18なら17:00開始が最後）

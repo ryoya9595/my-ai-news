@@ -7,7 +7,7 @@ window.YOYAKU_CONFIG = {
   API_URL: "",
 
   // 画面に出す名前
-  HOST_NAME: "",                        // 例: 宮田陽子
+  HOST_NAME: "",                        // お客様への確認メッセージに差出人として表示される名前
   SERVICE_NAME: "個別相談（60分・無料）",
   // オンライン相談のツールに合わせて書き換える（Zoomなら「Zoom でのオンライン相談です」など）。
   // 実際にどのURLを案内するかは GAS のスクリプトプロパティ MEETING_TOOL（meet / zoom / none）で決まります。
