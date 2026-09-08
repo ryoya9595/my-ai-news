@@ -213,8 +213,20 @@ clasp open-script
    - `LINE_CHANNEL_ACCESS_TOKEN` = ← 担当者が貼る（STEP 4 で保留なら後で）
    - 任意：`ADMIN_LINE_USER_ID`
 4. 営業時間などを変えたいか担当者に聞く（`BUSINESS_START` / `BUSINESS_END` / `WEEKDAYS` など。初期値は平日10〜18時・60分枠・昼休み12〜13時）
-5. 関数選択で **`selfCheck`** を実行 → ログに「カレンダー: OK」「スプレッドシート: OK」「LINEトークン: 設定あり」を確認
-6. 関数選択で **`installReminderTrigger`** を実行（前日リマインドの自動実行を登録）
+5. **オンライン相談のツールを担当者に聞く**（「Google Meet と Zoom、どちらで相談されていますか？」）
+   - **Google Meet** → 何もしない（既定。予約ごとにMeetのURLを自動発行する）
+   - **Zoom** → `MEETING_TOOL` = `zoom`、`ZOOM_URL` = 担当者のZoom固定URL（`https://us06web.zoom.us/j/…` の形）を入れる。
+     Zoom側の設定変更やAPI連携は不要。1枠1予約なので固定URLで問題ないが、気になる場合はZoomの待機室をONにしてもらう
+   - **どちらでもない／あとで手動で送る** → `MEETING_TOOL` = `none`
+   - Zoom や none にした場合は、`frontend/config.js` の `SERVICE_NOTE`（初期値「Google Meet でのオンライン相談です」）も
+     合わせて書き換える
+
+> ⚠️ **スクリプトプロパティは「行の追加」はできても「既存の値の書き換え」が自動操作で通らない**（2026-09-08 実測）。
+> 新しい行を足して保存するのは問題ないが、**すでにある行の値を変える必要が出たら担当者に頼むこと**
+> （「編集」→ 値を書き換え →「スクリプト プロパティを保存」）。
+6. 関数選択で **`selfCheck`** を実行 → ログに「カレンダー: OK」「スプレッドシート: OK」「LINEトークン: 設定あり」を確認
+   - `MEETING_TOOL` を `zoom` にした場合は「会議ツール: Zoom（固定URL） OK」も出る。`NG ZOOM_URL が未設定です` なら値を入れ忘れている
+7. 関数選択で **`installReminderTrigger`** を実行（前日リマインドの自動実行を登録）
 
 ### 5-4. デプロイ
 ```
@@ -254,7 +266,16 @@ curl -sL "【API_URL】?action=slots&from=<今日>&to=<7日後>"
 > `curl -sL -H "Content-Type: application/json" -d '{...}' "【API_URL】"` の形にする。
 > なお **405 が返っても予約自体は成立している**ことがあるので、失敗と決めつけて再送しない（二重予約になる）。
 
-> `clasp deploy` が使えない場合は、`clasp open` で開いたエディタから「デプロイ」→「新しいデプロイ」→ ウェブアプリ／自分として実行／全員 でデプロイし、URLを読み取る。
+> `clasp deploy` が使えない場合は、`clasp open-script` で開いたエディタから「デプロイ」→「新しいデプロイ」→ ウェブアプリ／自分として実行／全員 でデプロイし、URLを読み取る。
+
+> 🔴 **2回目以降のデプロイは、必ず `-i` で同じ Deployment ID を指定する**（2026-09-08 実測）
+> ```
+> clasp deploy -i 【Deployment ID】 --description "v2"
+> ```
+> `-i` を付けずに `clasp deploy` すると、**別の Deployment ID（＝別のURL）が新しく作られる**。
+> 既に `config.js` や LIFF に設定済みのURLは古いコードのままになり、
+> 「直したはずなのに動きが変わらない」という状態になる。
+> 現在のデプロイ一覧は `clasp list-deployments` で確認できる。
 
 ## STEP 6｜予約画面を公開する（あなたが実行）
 

@@ -31,8 +31,23 @@ var CONFIG_KEYS = {
   DAYS_AHEAD: 'DAYS_AHEAD',                         // 例: 30 （何日先まで受け付けるか）
   MIN_LEAD_HOURS: 'MIN_LEAD_HOURS',                 // 例: 24 （何時間前まで受け付けるか）
   REMINDER_HOUR: 'REMINDER_HOUR',                   // 例: 18 （前日リマインドを送る時刻）
-  ADMIN_LINE_USER_ID: 'ADMIN_LINE_USER_ID'          // 任意: 予約が入ったら管理者にも通知する場合のLINE userId
+  ADMIN_LINE_USER_ID: 'ADMIN_LINE_USER_ID',         // 任意: 予約が入ったら管理者にも通知する場合のLINE userId
+  MEETING_TOOL: 'MEETING_TOOL',                     // 'meet'（既定・Google Meetを自動発行）/ 'zoom'（固定URL）/ 'none'（URLなし）
+  ZOOM_URL: 'ZOOM_URL'                              // MEETING_TOOL='zoom' のときに案内する固定URL（Zoomの個人ミーティングURLなど）
 };
+
+/** MEETING_TOOL の値を正規化する。想定外の値は 'meet' 扱い。 */
+function normalizeMeetingTool(v) {
+  var t = String(v || '').trim().toLowerCase();
+  return (t === 'zoom' || t === 'none') ? t : 'meet';
+}
+
+/** 参加方法の案内文を作る。url が無いときは fallbackNote を括弧書きで添える。 */
+function meetingText(s, url, fallbackNote) {
+  if (s.meetingTool === 'zoom') return url ? 'Zoom\n' + url : 'Zoom（' + fallbackNote + '）';
+  if (s.meetingTool === 'none') return 'オンライン（' + fallbackNote + '）';
+  return url ? 'Google Meet\n' + url : 'Google Meet（' + fallbackNote + '）';
+}
 
 var SHEET_HEADERS = [
   '受付日時', '予約日', '開始', '終了', 'お名前', 'LINE表示名', 'LINE userId',
@@ -76,7 +91,9 @@ function settings() {
     daysAhead: cfgInt(CONFIG_KEYS.DAYS_AHEAD, 30),
     minLeadHours: cfgInt(CONFIG_KEYS.MIN_LEAD_HOURS, 24),
     reminderHour: cfgInt(CONFIG_KEYS.REMINDER_HOUR, 18),
-    adminLineUserId: cfg(CONFIG_KEYS.ADMIN_LINE_USER_ID, '')
+    adminLineUserId: cfg(CONFIG_KEYS.ADMIN_LINE_USER_ID, ''),
+    meetingTool: normalizeMeetingTool(cfg(CONFIG_KEYS.MEETING_TOOL, 'meet')),
+    zoomUrl: cfg(CONFIG_KEYS.ZOOM_URL, '')
   };
 }
 
@@ -198,8 +215,20 @@ function createBooking(b) {
   }
 }
 
-/** Google Meet 付きで予定を作る。Advanced Calendar Service が無効な場合は Meet なしで作る。 */
+/**
+ * カレンダーに予定を作る。
+ *   MEETING_TOOL='meet'（既定） … Google Meet を自動発行する（Advanced Calendar Service が無効なら Meet なしで作る）
+ *   MEETING_TOOL='zoom'         … Meet は発行せず、ZOOM_URL を案内する
+ *   MEETING_TOOL='none'         … 会議URLなし（あとで手動で案内する運用）
+ */
 function createCalendarEvent(s, ev) {
+  if (s.meetingTool !== 'meet') {
+    var fixedUrl = (s.meetingTool === 'zoom') ? s.zoomUrl : '';
+    var calFixed = CalendarApp.getCalendarById(s.calendarId);
+    var descFixed = ev.description + (fixedUrl ? '\n\n■ 参加URL（Zoom）\n' + fixedUrl : '');
+    var eFixed = calFixed.createEvent(ev.title, ev.start, ev.end, { description: descFixed });
+    return { id: eFixed.getId(), meetUrl: fixedUrl };
+  }
   try {
     var resource = {
       summary: ev.title,
@@ -267,7 +296,7 @@ function confirmMessage(s, b) {
     fmtJa(b.start) + ' ' + fmtTime(b.start) + '〜' + fmtTime(b.end),
     '',
     '■ 参加方法',
-    b.meetUrl ? 'Google Meet\n' + b.meetUrl : 'Google Meet（URLは前日にお送りします）',
+    meetingText(s, b.meetUrl, 'URLは前日にお送りします'),
     '',
     '前日にもリマインドをお送りします。',
     '日程の変更やご質問は、このトークにそのまま返信してください。'
@@ -303,7 +332,7 @@ function sendReminders() {
       fmtJa(parseDate(date)) + ' ' + startStr + '〜' + endStr,
       '',
       '■ 参加方法',
-      meet ? 'Google Meet\n' + meet : 'Google Meet（URLは別途お送りします）',
+      meetingText(s, meet, 'URLは別途お送りします'),
       '',
       'ご都合が悪くなった場合は、このトークに返信してください。'
     ].join('\n');
@@ -330,7 +359,8 @@ function installReminderTrigger() {
 function applyDefaultConfig() {
   var defaults = {
     SERVICE_NAME: '無料相談（60分）', BUSINESS_START: '10', BUSINESS_END: '18', LUNCH_START: '12', LUNCH_END: '13',
-    SLOT_MINUTES: '60', WEEKDAYS: '1,2,3,4,5', DAYS_AHEAD: '30', MIN_LEAD_HOURS: '24', REMINDER_HOUR: '18', SHEET_NAME: '予約台帳'
+    SLOT_MINUTES: '60', WEEKDAYS: '1,2,3,4,5', DAYS_AHEAD: '30', MIN_LEAD_HOURS: '24', REMINDER_HOUR: '18', SHEET_NAME: '予約台帳',
+    MEETING_TOOL: 'meet'
   };
   var props = PropertiesService.getScriptProperties();
   var set = [];
@@ -350,7 +380,13 @@ function selfCheck() {
   try { CalendarApp.getCalendarById(s.calendarId).getName(); out.push('カレンダー: OK'); } catch (e) { out.push('カレンダー: NG ' + e.message); }
   try { getSheet(s).getName(); out.push('スプレッドシート: OK'); } catch (e) { out.push('スプレッドシート: NG ' + e.message); }
   out.push('LINEトークン: ' + (s.lineToken ? '設定あり' : 'NG 未設定'));
-  try { Calendar.Calendars.get(s.calendarId); out.push('Google Meet 自動発行: OK（Advanced Calendar Service 有効）'); } catch (e) { out.push('Google Meet 自動発行: 使えません（予定はMeetなしで作られます）'); }
+  if (s.meetingTool === 'zoom') {
+    out.push('会議ツール: Zoom（固定URL） ' + (s.zoomUrl ? 'OK' : 'NG ZOOM_URL が未設定です'));
+  } else if (s.meetingTool === 'none') {
+    out.push('会議ツール: なし（参加URLは手動で案内する設定です）');
+  } else {
+    try { Calendar.Calendars.get(s.calendarId); out.push('Google Meet 自動発行: OK（Advanced Calendar Service 有効）'); } catch (e) { out.push('Google Meet 自動発行: 使えません（予定はMeetなしで作られます）'); }
+  }
   var next = availableSlots(startOfDay(new Date()), addDays(new Date(), 7), s);
   out.push('直近7日の空き枠: ' + Object.keys(next).length + '日分');
   Logger.log(out.join('\n'));

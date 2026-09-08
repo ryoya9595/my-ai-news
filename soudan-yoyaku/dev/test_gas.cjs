@@ -338,6 +338,80 @@ section('installReminderTrigger / selfCheck');
   ok(/NG 未設定/.test(env2.s.selfCheck()), 'トークン未設定を検出する');
 }
 
+// ---------- 7. 会議ツールの切り替え（MEETING_TOOL） ----------
+section('MEETING_TOOL（Meet / Zoom固定URL / なし）');
+{
+  const day = nextWeekday(3);
+  const iso = ymd(day);
+  const ZOOM = 'https://zoom.us/j/1234567890';
+  const book = (env, time, extra) => env.s.doPost({ postData: { contents: JSON.stringify(Object.assign({ action: 'book', date: iso, time, name: '客', lineUserId: 'U1' }, extra || {})) } })._json;
+
+  // 既定（未設定）は Meet のまま
+  const envDefault = makeEnv({ props: BASE_PROPS });
+  const rd = book(envDefault, '14:00');
+  ok(rd.ok === true && /meet\.google\.com/.test(rd.meetUrl), 'MEETING_TOOL 未設定なら従来どおり Meet を発行', rd.meetUrl);
+  ok(/Google Meet/.test(envDefault.state.pushes[0].payload.messages[0].text), '既定の本文は Google Meet 表記');
+
+  // zoom
+  const zoomProps = Object.assign({}, BASE_PROPS, { MEETING_TOOL: 'zoom', ZOOM_URL: ZOOM });
+  const envZoom = makeEnv({ props: zoomProps });
+  const rz = book(envZoom, '14:00');
+  ok(rz.ok === true, 'Zoom設定でも予約は成立', rz);
+  ok(rz.meetUrl === ZOOM, '返り値の会議URLが ZOOM_URL になる', rz.meetUrl);
+  ok(envZoom.state.events.length === 1, 'カレンダー予定は1件だけ作られる', envZoom.state.events.length);
+  const zText = envZoom.state.pushes[0].payload.messages[0].text;
+  ok(/Zoom/.test(zText) && zText.includes(ZOOM), 'LINE本文が Zoom 表記＋固定URLになる', zText);
+  ok(!/Google Meet/.test(zText), 'Zoom設定のとき本文に Google Meet が出ない');
+  const zHead = envZoom.state.sheetRows[0];
+  ok(envZoom.state.sheetRows[1][zHead.indexOf('MeetURL')] === ZOOM, '台帳の会議URL列に ZOOM_URL が入る');
+  ok(/Zoom/.test(envZoom.state.events[0].description) && envZoom.state.events[0].description.includes(ZOOM),
+     'カレンダー予定の説明にも Zoom URL が入る');
+
+  // zoom なのに ZOOM_URL 未設定（設定ミス）
+  const envZoomNg = makeEnv({ props: Object.assign({}, BASE_PROPS, { MEETING_TOOL: 'zoom' }) });
+  const rzn = book(envZoomNg, '14:00');
+  ok(rzn.ok === true && rzn.meetUrl === '', 'ZOOM_URL 未設定でも予約自体は成立する', rzn);
+  ok(/Zoom（/.test(envZoomNg.state.pushes[0].payload.messages[0].text), 'URL未設定なら「Zoom（…）」と案内する');
+  ok(/ZOOM_URL が未設定/.test(envZoomNg.s.selfCheck()), 'selfCheck が ZOOM_URL の未設定を名指しする', envZoomNg.s.selfCheck());
+
+  // none
+  const envNone = makeEnv({ props: Object.assign({}, BASE_PROPS, { MEETING_TOOL: 'none' }) });
+  const rn = book(envNone, '14:00');
+  ok(rn.ok === true && rn.meetUrl === '', 'none なら会議URLなしで予約が成立', rn);
+  const nText = envNone.state.pushes[0].payload.messages[0].text;
+  ok(/オンライン（/.test(nText) && !/Google Meet/.test(nText) && !/Zoom/.test(nText), 'none の本文は「オンライン（…）」表記', nText);
+
+  // 想定外の値は meet 扱い
+  const envBad = makeEnv({ props: Object.assign({}, BASE_PROPS, { MEETING_TOOL: 'Teams' }) });
+  const rb = book(envBad, '14:00');
+  ok(rb.ok === true && /meet\.google\.com/.test(rb.meetUrl), '未知の MEETING_TOOL は meet 扱いになる', rb.meetUrl);
+
+  // 大文字・空白でも効く
+  const envUpper = makeEnv({ props: Object.assign({}, BASE_PROPS, { MEETING_TOOL: ' ZOOM ', ZOOM_URL: ZOOM }) });
+  ok(book(envUpper, '14:00').meetUrl === ZOOM, 'MEETING_TOOL は大文字・前後空白でも認識する');
+
+  // selfCheck の表示
+  ok(/会議ツール: Zoom/.test(makeEnv({ props: zoomProps }).s.selfCheck()), 'selfCheck が Zoom 設定を表示する');
+  ok(/会議ツール: なし/.test(makeEnv({ props: Object.assign({}, BASE_PROPS, { MEETING_TOOL: 'none' }) }).s.selfCheck()), 'selfCheck が「なし」設定を表示する');
+
+  // リマインドも Zoom 表記になる
+  const tomorrow = new Date(); tomorrow.setHours(0, 0, 0, 0); tomorrow.setDate(tomorrow.getDate() + 1);
+  const envRem = makeEnv({ props: Object.assign({}, zoomProps, { MIN_LEAD_HOURS: '0', WEEKDAYS: '0,1,2,3,4,5,6' }) });
+  envRem.s.doPost({ postData: { contents: JSON.stringify({ action: 'book', date: ymd(tomorrow), time: '14:00', name: '客', lineUserId: 'Ur' }) } });
+  const beforeRem = envRem.state.pushes.length;
+  envRem.s.sendReminders();
+  const remText = envRem.state.pushes[beforeRem].payload.messages[0].text;
+  ok(/Zoom/.test(remText) && remText.includes(ZOOM), '前日リマインドも Zoom 表記＋固定URLになる', remText);
+
+  // applyDefaultConfig が MEETING_TOOL を meet で入れる
+  const applyEnv = makeEnv({ props: {} });
+  applyEnv.s.applyDefaultConfig();
+  ok(applyEnv.props.MEETING_TOOL === 'meet', 'applyDefaultConfig が MEETING_TOOL=meet を入れる', applyEnv.props.MEETING_TOOL);
+  const keepEnv = makeEnv({ props: { MEETING_TOOL: 'zoom' } });
+  keepEnv.s.applyDefaultConfig();
+  ok(keepEnv.props.MEETING_TOOL === 'zoom', '既に設定済みの MEETING_TOOL は上書きしない', keepEnv.props.MEETING_TOOL);
+}
+
 console.log('\n' + '─'.repeat(50));
 console.log(failures === 0 ? `✅ 全 ${checks} 項目パス` : `❌ ${failures} / ${checks} 項目が失敗`);
 process.exit(failures === 0 ? 0 : 1);

@@ -9,6 +9,8 @@ window.YOYAKU_CONFIG = {
   // 画面に出す名前
   HOST_NAME: "",                        // 例: 宮田陽子
   SERVICE_NAME: "個別相談（60分・無料）",
+  // オンライン相談のツールに合わせて書き換える（Zoomなら「Zoom でのオンライン相談です」など）。
+  // 実際にどのURLを案内するかは GAS のスクリプトプロパティ MEETING_TOOL（meet / zoom / none）で決まります。
   SERVICE_NOTE: "Google Meet でのオンライン相談です",
 
   // ご相談内容の選択肢（自由に書き換え）
