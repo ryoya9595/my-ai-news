@@ -4,6 +4,7 @@ Claude Code の「ルーティン」に、下の `---` から `---` までを**�
 リポジトリにこのキット（`dm-watch/`）が入っている前提です。
 
 - cron: `0 1,5,8,10 * * *`（UTC。日本時間の 10時・14時・17時・19時）
+  ※ 19時→翌10時は15時間空くが、前回実行時刻まで自動で遡るので夜間のDMも拾える
 - 環境: API credentials に `graph.instagram.com` と `api.line.me` を登録した環境
 - リポジトリ: このキットが入っているリポジトリ（ブランチへの push を許可しておくと、通知済みIDの記録が残ります）
 
@@ -17,6 +18,10 @@ Claude Code の「ルーティン」に、下の `---` から `---` までを**�
 ```
 python3 dm-watch/scripts/fetch_dms.py --hours 4.5 --state dm-watch/state/ig_seen.json
 ```
+
+- `--hours` は**最低これだけは遡る**という下限。前回 `--commit-state` した時刻がそれより前なら、
+  そこまで自動的に遡る（実行間隔が空く夜間もDMを取りこぼさない）。
+  出力の `window.source` が `last_run` なら前回実行から、`hours` なら指定時間ぶん遡ったという意味。
 
 - 出力は JSON。`ok` が `false` なら **その `error` を1行で LINE に送って終了**する（原因は担当者が調べる）。
   ```

@@ -19,6 +19,12 @@ Instagram の新着DMを取得して JSON で出力する。
   送信が成功してから確定させることで、失敗時は次回もう一度通知される
   （まれに重複通知になるが、取りこぼすよりはよい）。
 
+どこまで遡るか:
+  --hours だけで遡ると、実行間隔がそれより空いたときにDMを取りこぼす。
+  （例: 10/14/17/19時に動かすと 19時→翌10時は15時間空くので、4.5時間では夜間のDMが拾えない）
+  そのため state に "last_run_at"（前回 --commit-state した時刻）を持ち、
+  そこまで遡る。--hours はその下限、--max-lookback はその上限（長期停止したときの暴走防止）。
+
 認証:
   1) 環境変数 IG_ACCESS_TOKEN があれば Authorization: Bearer で送る
   2) 無ければヘッダを付けずに送る（Claude Code の cloud 環境で「API credentials」に
@@ -123,19 +129,41 @@ def save_state(path, state, keep=2000):
         json.dump(state, f, ensure_ascii=False, indent=2)
 
 
-def commit_state(path):
-    """LINE送信が成功したあとに呼ぶ。pending を seen に移して確定させる。"""
+def commit_state(path, now=None):
+    """LINE送信が成功したあとに呼ぶ。pending を seen に移して確定させ、実行時刻を記録する。"""
     state = load_state(path)
     moved = [i for i in state.get("pending", []) if i not in set(state.get("seen", []))]
     state["seen"] = state.get("seen", []) + moved
     state["pending"] = []
+    state["last_run_at"] = (now or dt.datetime.now(dt.timezone.utc)).strftime("%Y-%m-%dT%H:%M:%S+0000")
     save_state(path, state)
     return len(moved)
 
 
+def window_start(now, hours, max_lookback, last_run_at):
+    """どこまで遡るかを決める。
+
+    - 基本は「前回 --commit-state した時刻」まで遡る（実行間隔が空いても取りこぼさない）
+    - ただし最低でも hours 前までは遡る
+    - 長期間止まっていた場合でも max_lookback より前には遡らない
+    戻り値: (since, 'hours' | 'last_run' | 'max_lookback')
+    """
+    floor = now - dt.timedelta(hours=hours)
+    prev = parse_time(last_run_at or "")
+    if not prev or prev >= floor:
+        return floor, "hours"
+    cap = now - dt.timedelta(hours=max_lookback)
+    if prev < cap:
+        return cap, "max_lookback"
+    return prev, "last_run"
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--hours", type=float, default=float(os.environ.get("IG_WINDOW_HOURS", "4.5")), help="何時間前までのDMを拾うか")
+    ap.add_argument("--hours", type=float, default=float(os.environ.get("IG_WINDOW_HOURS", "4.5")),
+                    help="最低これだけは遡る時間（前回実行がもっと前ならそちらまで遡る）")
+    ap.add_argument("--max-lookback", type=float, default=float(os.environ.get("IG_MAX_LOOKBACK_HOURS", "72")),
+                    help="どれだけ前回実行が古くても、これ以上は遡らない上限")
     ap.add_argument("--state", default=os.environ.get("IG_STATE_FILE", ""), help="通知済みIDを記録するJSON（任意）")
     ap.add_argument("--host", default=DEFAULT_HOST)
     ap.add_argument("--version", default=DEFAULT_VERSION)
@@ -156,7 +184,8 @@ def main():
 
     token = os.environ.get("IG_ACCESS_TOKEN") or None
     now = dt.datetime.now(dt.timezone.utc)
-    since = now - dt.timedelta(hours=args.hours)
+    since, since_source = window_start(now, args.hours, args.max_lookback,
+                                       load_state(args.state).get("last_run_at") if args.state else None)
 
     try:
         me = api_get(args.host, args.version, "me", {"fields": "id,username"}, token)
@@ -222,7 +251,9 @@ def main():
         "ok": True,
         "me": me,
         "window": {"from": since.astimezone(JST).strftime("%Y-%m-%d %H:%M"),
-                   "to": now.astimezone(JST).strftime("%Y-%m-%d %H:%M"), "hours": args.hours},
+                   "to": now.astimezone(JST).strftime("%Y-%m-%d %H:%M"),
+                   "hours": round((now - since).total_seconds() / 3600.0, 2),
+                   "source": since_source},
         "messages": messages,
         "count": len(messages),
         "errors": len(errors),

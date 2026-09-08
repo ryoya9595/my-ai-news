@@ -7,6 +7,7 @@
 | 1 | `はじめにお読みください.md` | 人 |
 | 2 | `事前準備ガイド.md` | 人（Instagram・Meta・LINE・Claude環境の設定） |
 | 3 | `導入手順_ClaudeCodeに読ませる.md` | Claude Code |
+| — | `導入をサポートする人へ.md` | 誰かに設置してあげる人（教える側） |
 | — | `routine-prompt.md` | ルーティンに貼る |
 | — | `scripts/fetch_dms.py` / `send_line.py` / `refresh_token.py` | ルーティンが実行 |
 | — | `dev/test_scripts.py` | 開発用の検証（納品物ではない。`scripts/` を直したら実行する） |

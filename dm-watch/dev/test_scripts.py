@@ -84,9 +84,54 @@ def test_state():
     chk(r.returncode == 2, "--commit-state 単体は終了コード2で落ちる")
 
 
+def test_window():
+    print("=== fetch_dms: どこまで遡るか（実行間隔が空いても取りこぼさない） ===")
+    import datetime as dt
+    fd = load("fetch_dms")
+    now = dt.datetime(2026, 9, 10, 1, 0, 0, tzinfo=dt.timezone.utc)  # JST 10:00
+    fmt = lambda d: d.strftime("%Y-%m-%dT%H:%M:%S+0000")
+
+    since, src = fd.window_start(now, 4.5, 72, None)
+    chk(src == "hours" and (now - since).total_seconds() / 3600 == 4.5,
+        "前回実行の記録が無ければ --hours ぶんだけ遡る")
+
+    # 前夜19:00(JST)＝10:00 UTC 前日 に実行済み。15時間空いている
+    prev = now - dt.timedelta(hours=15)
+    since, src = fd.window_start(now, 4.5, 72, fmt(prev))
+    chk(src == "last_run" and since == prev,
+        "前回実行が --hours より前なら、そこまで遡る（夜間のDMを取りこぼさない）")
+
+    # 直前に実行済み（1時間前）なら hours の方が広いのでそちらを使う
+    since, src = fd.window_start(now, 4.5, 72, fmt(now - dt.timedelta(hours=1)))
+    chk(src == "hours" and (now - since).total_seconds() / 3600 == 4.5,
+        "前回実行が最近なら --hours の範囲を維持する（狭めない）")
+
+    # 長期停止していても max_lookback で頭打ち
+    since, src = fd.window_start(now, 4.5, 72, fmt(now - dt.timedelta(days=30)))
+    chk(src == "max_lookback" and (now - since).total_seconds() / 3600 == 72,
+        "長期間止まっていても max-lookback より前には遡らない")
+
+    # 壊れた last_run_at は無視して hours にフォールバック
+    since, src = fd.window_start(now, 4.5, 72, "こわれた値")
+    chk(src == "hours", "last_run_at が壊れていても落ちずに --hours を使う")
+
+    # commit_state が last_run_at を記録する
+    import os, tempfile
+    p = os.path.join(tempfile.mkdtemp(), "st.json")
+    st = fd.load_state(p)
+    st["pending"] = ["m1"]
+    fd.save_state(p, st)
+    fd.commit_state(p, now)
+    saved = fd.load_state(p)
+    chk(saved.get("last_run_at") == fmt(now), "commit_state が last_run_at を記録する")
+    since, src = fd.window_start(now + dt.timedelta(hours=15), 4.5, 72, saved.get("last_run_at"))
+    chk(src == "last_run", "記録した last_run_at が次回の遡り開始点として効く")
+
+
 def main():
     test_split_text()
     test_state()
+    test_window()
     print()
     print("✅ 全パス" if _ng == 0 else "❌ %d 件 失敗" % _ng)
     sys.exit(1 if _ng else 0)
