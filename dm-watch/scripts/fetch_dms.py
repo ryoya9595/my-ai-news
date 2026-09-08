@@ -5,8 +5,19 @@ Instagram の新着DMを取得して JSON で出力する。
 使い方:
   python3 fetch_dms.py --hours 4.5                 直近4.5時間の新着DM
   python3 fetch_dms.py --hours 4.5 --state state/ig_seen.json
-                                                    既に通知済みのメッセージIDを除外し、state を更新
+                                                    通知済みのメッセージIDを除外して取得する。
+                                                    拾ったIDは state の "pending" に置くだけで、
+                                                    "seen"（通知済み）には入れない
+  python3 fetch_dms.py --state state/ig_seen.json --commit-state
+                                                    LINE送信が成功したあとに実行する。
+                                                    "pending" を "seen" に移して確定させる
   python3 fetch_dms.py --self-test                  認証と接続だけ確認（DMは取りに行かない）
+
+通知済みの記録を2段階にしている理由:
+  取得した時点で "seen" に入れてしまうと、そのあとの LINE 送信が失敗したときに
+  そのDMが二度と通知されなくなる（お客様からの問い合わせを取りこぼす）。
+  送信が成功してから確定させることで、失敗時は次回もう一度通知される
+  （まれに重複通知になるが、取りこぼすよりはよい）。
 
 認証:
   1) 環境変数 IG_ACCESS_TOKEN があれば Authorization: Bearer で送る
@@ -23,7 +34,8 @@ Instagram の新着DMを取得して JSON で出力する。
        "created_jst": "2026-09-04 14:12", "from": {"id": "...", "username": "..."},
        "text": "...", "attachments": 0}
     ],
-    "count": 3
+    "count": 3,
+    "errors": 0            会話ごとの取得に失敗した件数（0 でなければ取りこぼしの可能性あり）
   }
 標準ライブラリのみ。Python 3.8+。
 """
@@ -86,24 +98,39 @@ def parse_time(s):
 
 
 def load_state(path):
+    """通知済み(seen)と、送信待ち(pending)を読む。古い形式（seenだけ）も読める。"""
+    empty = {"seen": [], "pending": []}
     if not path or not os.path.exists(path):
-        return {"seen": []}
+        return empty
     try:
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
         if isinstance(data, dict) and isinstance(data.get("seen"), list):
+            if not isinstance(data.get("pending"), list):
+                data["pending"] = []
             return data
     except Exception:
         pass
-    return {"seen": []}
+    return empty
 
 
 def save_state(path, state, keep=2000):
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    state["seen"] = state["seen"][-keep:]
+    state["seen"] = state.get("seen", [])[-keep:]
+    state["pending"] = state.get("pending", [])[-keep:]
     state["updated_at"] = dt.datetime.now(JST).strftime("%Y-%m-%d %H:%M")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
+
+
+def commit_state(path):
+    """LINE送信が成功したあとに呼ぶ。pending を seen に移して確定させる。"""
+    state = load_state(path)
+    moved = [i for i in state.get("pending", []) if i not in set(state.get("seen", []))]
+    state["seen"] = state.get("seen", []) + moved
+    state["pending"] = []
+    save_state(path, state)
+    return len(moved)
 
 
 def main():
@@ -115,7 +142,17 @@ def main():
     ap.add_argument("--limit", type=int, default=50, help="会話の最大取得数")
     ap.add_argument("--per-conv", type=int, default=20, help="1会話あたり見るメッセージ数")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--commit-state", action="store_true",
+                    help="LINE送信が成功したあとに実行し、pending を seen に確定させる")
     args = ap.parse_args()
+
+    if args.commit_state:
+        if not args.state:
+            print(json.dumps({"ok": False, "error": "--commit-state には --state が必要です"}, ensure_ascii=False))
+            sys.exit(2)
+        moved = commit_state(args.state)
+        print(json.dumps({"ok": True, "committed": moved}, ensure_ascii=False))
+        return
 
     token = os.environ.get("IG_ACCESS_TOKEN") or None
     now = dt.datetime.now(dt.timezone.utc)
@@ -132,7 +169,7 @@ def main():
         print(json.dumps({"ok": True, "me": me, "host": args.host, "version": args.version}, ensure_ascii=False))
         return
 
-    state = load_state(args.state) if args.state else {"seen": []}
+    state = load_state(args.state) if args.state else {"seen": [], "pending": []}
     seen = set(state.get("seen", []))
 
     try:
@@ -143,6 +180,7 @@ def main():
         sys.exit(3)
 
     messages = []
+    errors = []
     for c in convs.get("data", []):
         upd = parse_time(c.get("updated_time", "") or "")
         if upd and upd < since:
@@ -151,7 +189,7 @@ def main():
             detail = api_get(args.host, args.version, c["id"],
                              {"fields": f"messages.limit({args.per_conv}){{id,created_time,from,message,attachments}}"}, token)
         except Exception as e:
-            messages.append({"id": f"error:{c['id']}", "conversation_id": c["id"], "error": str(e)})
+            errors.append({"conversation_id": c["id"], "error": str(e)})
             continue
         for m in (detail.get("messages", {}) or {}).get("data", []):
             ct = parse_time(m.get("created_time", "") or "")
@@ -176,9 +214,8 @@ def main():
     messages.sort(key=lambda x: x.get("created_time") or "")
 
     if args.state:
-        for m in messages:
-            if m.get("id") and not m["id"].startswith("error:"):
-                state["seen"].append(m["id"])
+        # ここでは seen に入れない。LINE送信が成功したあと --commit-state で確定させる
+        state["pending"] = [m["id"] for m in messages if m.get("id")]
         save_state(args.state, state)
 
     print(json.dumps({
@@ -187,7 +224,9 @@ def main():
         "window": {"from": since.astimezone(JST).strftime("%Y-%m-%d %H:%M"),
                    "to": now.astimezone(JST).strftime("%Y-%m-%d %H:%M"), "hours": args.hours},
         "messages": messages,
-        "count": len([m for m in messages if not str(m.get("id", "")).startswith("error:")]),
+        "count": len(messages),
+        "errors": len(errors),
+        "error_detail": errors,
     }, ensure_ascii=False, indent=2))
 
 

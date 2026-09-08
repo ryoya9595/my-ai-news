@@ -9,5 +9,6 @@
 | 3 | `導入手順_ClaudeCodeに読ませる.md` | Claude Code |
 | — | `routine-prompt.md` | ルーティンに貼る |
 | — | `scripts/fetch_dms.py` / `send_line.py` / `refresh_token.py` | ルーティンが実行 |
+| — | `dev/test_scripts.py` | 開発用の検証（納品物ではない。`scripts/` を直したら実行する） |
 
 構成：Claude ルーティン（cron `0 1,5,8,10 * * *` UTC）→ `fetch_dms.py`（Instagram Graph API）→ Claude が判定 → `send_line.py`（LINE Messaging API push）。トークンは Claude 環境の API credentials に預け、コードにも環境変数にも置かない。

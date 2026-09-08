@@ -56,8 +56,16 @@ def _request(url, method, payload=None, token=None):
 
 
 def split_text(text, n=MAX_LEN):
+    """行単位で n 文字以下のかたまりに分ける。1行が n を超える場合はその行も強制的に割る
+    （割らないと LINE の文字数上限を超えて 400 で弾かれる）。"""
     chunks, cur = [], ""
     for line in text.split("\n"):
+        while len(line) > n:
+            if cur:
+                chunks.append(cur)
+                cur = ""
+            chunks.append(line[:n])
+            line = line[n:]
         if len(cur) + len(line) + 1 > n and cur:
             chunks.append(cur)
             cur = ""

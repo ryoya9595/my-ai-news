@@ -22,7 +22,13 @@ python3 dm-watch/scripts/fetch_dms.py --hours 4.5 --state dm-watch/state/ig_seen
   ```
   python3 dm-watch/scripts/send_line.py --text "⚠️ Instagram DMチェックが失敗しました: <error>"
   ```
-- `count` が **0 なら何も送らずに終了**する（「新着なし」の通知は送らない。無料枠の節約のため）。
+- `errors` が **1以上なら、一部の会話が取得できていない**。`count` が 0 でも
+  次の1行を LINE に送る（黙って取りこぼすのを防ぐため）。
+  ```
+  python3 dm-watch/scripts/send_line.py --text "⚠️ 一部の会話を取得できませんでした（N件）。Instagramの権限かトークンを確認してください"
+  ```
+- `count` が **0（かつ `errors` も 0）なら何も送らずに終了**する（「新着なし」の通知は送らない。無料枠の節約のため）。
+  このとき手順4の確定コマンドも実行しない。
 
 ## 2. 1件ずつ判定する
 
@@ -65,9 +71,23 @@ python3 dm-watch/scripts/fetch_dms.py --hours 4.5 --state dm-watch/state/ig_seen
   ```
   （本文をいったん `/tmp/ig_dm_message.txt` に書いてから送る）
 
-## 4. 通知済みIDを記録する（リポジトリに push できる場合）
+  `send_line.py` の出力が `{"ok": true, ...}` であることを必ず確認する。
+  `ok` が `false`（または終了コードが 0 以外）なら **手順4に進まずにそこで終了する**。
+  次回の実行で同じDMがもう一度通知される（取りこぼすよりよい）。
 
-`dm-watch/state/ig_seen.json` が更新されているので、コミットして push する。
+## 4. 通知済みとして確定させる（LINE送信が成功したときだけ）
+
+手順1で拾ったIDは、まだ「送信待ち（pending）」の状態で、通知済みにはなっていない。
+**LINE送信が成功したときだけ**、次を実行して確定させる。
+
+```
+python3 dm-watch/scripts/fetch_dms.py --state dm-watch/state/ig_seen.json --commit-state
+```
+
+これを実行し忘れたり、送信が失敗して実行しなかった場合は、次回の実行で同じDMがもう一度通知される。
+**送信が成功していないのに、この確定コマンドを先に実行してはいけない**（そのDMが二度と通知されなくなる）。
+
+リポジトリに push できる場合は、記録を残す：
 
 ```
 git add dm-watch/state/ig_seen.json
@@ -75,7 +95,7 @@ git commit -m "ig-dm: 通知済みIDを更新"
 git push
 ```
 
-push できない環境なら、この手順は飛ばしてよい（時間窓で拾っているので、たまに重複するだけで実害はない）。
+push できない環境なら、push だけ飛ばしてよい（時間窓で拾っているので、たまに重複するだけで実害はない）。
 
 ## やらないこと
 
