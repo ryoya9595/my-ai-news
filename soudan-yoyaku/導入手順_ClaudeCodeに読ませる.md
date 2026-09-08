@@ -60,6 +60,16 @@ Set-Location "$HOME\Desktop"; git clone https://github.com/ryoya9595/my-ai-news.
 
 ブラウザ操作のルール：新しいタブを作ってそのタブだけ操作／ログイン画面は担当者に交代／名称が違っても同じ意味の項目を探す／ID・URL（トークン以外）はチャットで見せて「控えメモ」に転記してもらう。
 ブラウザ操作が使えない場合は、該当STEPを `事前準備ガイド.md` の読み上げ案内に切り替える。
+
+> 💡 **実測で分かった操作のコツ（2026-09-08 の導入テスト）**
+> - **座標クリック・`type` は入らないことがある**（Googleスプレッドシート／カレンダーの入力欄で発生）。
+>   `find` で要素の参照を取り、`form_input` で値を入れるのが確実。
+> - **Apps Script の「Google Apps Script API」トグルは画面上に描画されない**ことがある（サイズ0）。
+>   `aria-label="Google Apps Script API の許可を切り替え"` の要素を JS で `.click()` すると切り替わる。
+> - **GASエディタの「実行する関数」ドロップダウンは自動操作では選択できない**（後述 5-3）。
+> - Googleの認可画面はポップアップで開く。ポップアップを掴めない場合は、
+>   クリック前に `window.open` を「同じタブで遷移する」関数に差し替えると追える。
+
 `node` が無い場合は https://nodejs.org の LTS を担当者に入れてもらう（インストーラの操作は担当者）。
 
 ## STEP 3｜Google の台帳とカレンダー（あなたが画面を進める）
@@ -69,7 +79,14 @@ Set-Location "$HOME\Desktop"; git clone https://github.com/ryoya9595/my-ai-news.
 1. 新しいタブで https://sheets.new を開く（ログインは担当者）
 2. タイトルを「相談予約 台帳」にする
 3. URL から `/d/` と `/edit` の間を読み取り → **【SHEET_ID】** として担当者に見せて控えてもらう
-4. カレンダーは、担当者に「普段のカレンダーに入れてよいか、相談専用を分けるか」を聞く。普段のカレンダーなら **【CALENDAR_ID】= `primary`**。分ける場合は Googleカレンダーで新規作成し、設定の「カレンダーID」を読み取る
+4. カレンダーは、担当者に「普段のカレンダーに入れてよいか、相談専用を分けるか」を聞く。
+   - 普段のカレンダーなら **【CALENDAR_ID】= `primary`**
+   - **相談専用に分けるのを推奨**（テスト予約が本業の予定に混ざらない。他システムとカレンダー同期している人は必須）。作り方は次のとおり：
+     1. `https://calendar.google.com/calendar/u/0/r/settings/createcalendar` を開く
+     2. 「名前」に `相談予約` などを入れて「**カレンダーを作成**」（タイムゾーンは日本標準時のまま）
+     3. 作成後、左ペインの「**マイカレンダーの設定**」に出てくるそのカレンダー名をクリック
+     4. 下へスクロールして見出し「**カレンダーの統合**」の中の「**カレンダー ID**」（`〜@group.calendar.google.com`）を読み取る → **【CALENDAR_ID】**
+   - 二次カレンダー（`@group.calendar.google.com`）でも Google Meet の自動発行は動く（2026-09-08 実測）
 
 ## STEP 4｜LINE の LIFF とトークン（あなたが画面を進める・トークンは担当者）
 
@@ -97,8 +114,18 @@ Set-Location "$HOME\Desktop"; git clone https://github.com/ryoya9595/my-ai-news.
 npm install -g @google/clasp
 clasp login
 ```
-→ ブラウザが開く。担当者にログインと許可をしてもらう。
+→ ブラウザが開く。担当者にログインと許可をしてもらう。ここで出る画面（2026-09-08 実測）：
+
+1. **「アカウントを選択してください」** … Googleアカウントを複数持っている人は候補が並ぶ。
+   **必ず STEP 3 の台帳・カレンダーを作ったのと同じアカウント**を選ぶ（別アカウントを選ぶと後で `selfCheck` がカレンダーNGになる）
+2. **「clasp – The Apps Script CLI にログイン」** → 「次へ」
+3. **「clasp – The Apps Script CLI がアクセスできる情報を選択してください」**
+   … ⚠️ 権限が**項目ごとのチェックボックス**になっている。
+   **「すべて選択」にチェックを入れてから続行する**。1つでも外すと clasp が権限不足で失敗する
+4. ブラウザに `Logged in! You may close this page.` と出れば完了
+
 初めて clasp を使う Google アカウントでは、https://script.google.com/home/usersettings で「Google Apps Script API」を**オン**にする必要がある（ブラウザ操作で開いてスイッチを押す／担当者に押してもらう）。
+オンにしたあとページを再読み込みして、表示が「オン」のままであることを確認する。
 
 ### 5-2. プロジェクト作成と push
 
@@ -114,17 +141,57 @@ Set-Location "<このキットのパス>\gas"
 clasp create --type standalone --title "相談予約システム" --rootDir .
 clasp push -f
 ```
-- `Code.gs` と `appsscript.json` が push される（`appsscript.json` に Google Calendar API の有効化と Web app 設定が入っている）
-- `clasp push` が `Code.gs` を無視する場合は `cp Code.gs Code.js`（Windows: `Copy-Item`）してから再度 push
+> 🔴 **`clasp create` の直後に必ずやること（2026-09-08 実測・これを飛ばすと壊れる）**
+>
+> `clasp create ... --rootDir .` は、**作ったばかりの空プロジェクトの `appsscript.json` を手元に上書きコピーする**。
+> その結果、キット同梱の `appsscript.json`（649バイト）が**Googleの初期状態（124バイト）に置き換わる**。
+> 消えるのは次の4つ ——
+> `timeZone: Asia/Tokyo`（→ `America/New_York` になる）／`enabledAdvancedServices`（Calendar v3＝Meet発行）／
+> `webapp`（`access: ANYONE_ANONYMOUS` ＝お客様がログインなしで使える設定）／`oauthScopes` 5件。
+>
+> **このまま `clasp push -f` すると、Meetが付かず・お客様がアクセスできないシステムが公開される。**
+> `clasp create` の直後、`clasp push` の前に、キットの `appsscript.json` を**必ず書き戻す**：
+>
+> **Mac / Linux**（キットが git clone したものなら）
+> ```
+> git checkout -- appsscript.json
+> ```
+> git を使っていない場合は、Zip や別の控えから `gas/appsscript.json` を上書きコピーする。
+>
+> 書き戻せたかの確認（この4つが全部あればOK）：
+> ```
+> grep -c "Asia/Tokyo\|enabledAdvancedServices\|ANYONE_ANONYMOUS\|oauthScopes" appsscript.json
+> ```
+> → `4` と出れば正しい。`0` なら上書きされたままなので書き戻す。
+
+- 上記を直したうえで `clasp push -f` すると、`Code.gs` と `appsscript.json` の2ファイルが push される
+- `clasp` v3 では `Code.gs` はそのまま push される（`cp Code.gs Code.js` の回避策は不要。v2 を使っている場合のみ必要）
 
 ### 5-3. 初期設定と権限の許可（画面）
 ```
-clasp open
+clasp open-script
 ```
+（`clasp open` は v3 で廃止された。v2 を使っている場合のみ `clasp open`）
+
 → GASエディタが開く。ここからはブラウザ操作（使えなければ担当者に案内）：
+
+> ⚠️ **「実行する関数」ドロップダウンは AI が自動操作できない**（2026-09-08 実測）。
+> ref クリック・JSクリック・キーボード操作のどれでも選択が反映されない。
+> したがって **`applyDefaultConfig` / `selfCheck` / `installReminderTrigger` の3つの実行は担当者にやってもらう**。
+> 担当者に頼むときの言い方 → 「画面の上の方に関数名が出ているプルダウンがあります。そこから `applyDefaultConfig` を選んで、
+> 左の『▶ 実行』を押してください」
+>
+> 担当者がすぐ動けない場合は、`applyDefaultConfig` を飛ばして次の 3. に進んでよい。
+> `Code.gs` は全項目にコード側の初期値を持っているので、**手で入れるのは下の表の4つ＋（昼休みを使うなら）`LUNCH_START`/`LUNCH_END` だけ**で同じ状態になる
+> （`applyDefaultConfig` を実行しない場合、昼休みだけは「なし」が初期値になるため）。
+> ただし **`installReminderTrigger` を実行しないと前日リマインドは動かない**ので、これは必ず担当者にやってもらう。
+
 1. 関数選択で **`applyDefaultConfig`** を選び「実行」→ 初回は権限の許可画面が出るので**担当者に許可してもらう**（「詳細」→「（安全ではないページ）に移動」→「許可」）
 2. 実行ログに「手で入れる必要がある項目: CALENDAR_ID, SHEET_ID, LINE_CHANNEL_ACCESS_TOKEN, HOST_NAME」と出る
-3. 設定（歯車）→「スクリプト プロパティ」→ 次を追加。**トークン以外はあなたが入力**、トークンの値だけ担当者に貼ってもらう
+3. 左端の歯車「**プロジェクトの設定**」→ 下へスクロールしてセクション「**スクリプト プロパティ**」→
+   「**スクリプト プロパティを追加**」で行を増やし、入れ終わったら「**スクリプト プロパティを保存**」を押す
+   （保存されるとボタンが「スクリプト プロパティを編集」に変わる。これが保存できた合図）。
+   **トークン以外はあなたが入力**、トークンの値だけ担当者に貼ってもらう
    - `CALENDAR_ID` = STEP 3 の値
    - `SHEET_ID` = STEP 3 の値
    - `HOST_NAME` = 担当者の名前（聞く）
@@ -142,11 +209,35 @@ clasp deploy --description "v1"
 ```
 https://script.google.com/macros/s/【Deployment ID】/exec
 ```
-これを **【API_URL】** とする。確認：
+これを **【API_URL】** とする。
+
+> 🔴 **デプロイした直後に一度、ブラウザで【API_URL】を開く**（2026-09-08 実測・飛ばすと動かない）
+>
+> スクリプトの権限をまだ一度も許可していない状態でデプロイすると、Webアプリが認可待ちのままになる。
+> このとき `curl` からは JSON ではなく HTML が返り、中身は
+> **「アクセスが拒否されました / ドライブ アクセス権が必要です」**という、
+> 一見デプロイ設定のミスに見える別のメッセージになる（`webapp.access` を疑っても直らない）。
+>
+> 直し方：ブラウザで `【API_URL】?action=ping` を開くと **「Authorization needed」** と出る。
+> **REVIEW PERMISSIONS** → 「このアプリは Google で確認されていません」→ **詳細** →
+> 「**（このプロジェクト名）（安全ではないページ）に移動**」→ 権限一覧で **「すべて選択」** → 続行。
+> `Authorization successful.` と出れば完了（この許可操作は担当者に頼む）。
+> ※ 5-3 で担当者が `applyDefaultConfig` などを実行して許可済みなら、この手順は不要。
+
+確認：
 ```
 curl -sL "【API_URL】?action=ping"
 ```
-`{"ok":true,...}` が返ればOK（Windows は `Invoke-WebRequest -Uri "…" | Select-Object -Expand Content`）。
+`{"ok":true,"now":"..."}` が返ればOK（Windows は `Invoke-WebRequest -Uri "…" | Select-Object -Expand Content`）。
+続けて空き枠も確認する：
+```
+curl -sL "【API_URL】?action=slots&from=<今日>&to=<7日後>"
+```
+`{"ok":true,"days":{...}}` に平日の時刻が並び、昼休みの時刻が抜けていれば設定が効いている。
+
+> ⚠️ 予約の POST を `curl` で試すときは **`--post302` などを付けない**（リダイレクト先が 405 を返す）。
+> `curl -sL -H "Content-Type: application/json" -d '{...}' "【API_URL】"` の形にする。
+> なお **405 が返っても予約自体は成立している**ことがあるので、失敗と決めつけて再送しない（二重予約になる）。
 
 > `clasp deploy` が使えない場合は、`clasp open` で開いたエディタから「デプロイ」→「新しいデプロイ」→ ウェブアプリ／自分として実行／全員 でデプロイし、URLを読み取る。
 
@@ -184,10 +275,14 @@ LINE Developers → LINEログインチャネル → LIFF → `相談予約` を
 | 症状 | 見るところ |
 |---|---|
 | 「設定が未完了です」 | `config.js` の `LIFF_ID` / `API_URL`。再デプロイ忘れ |
-| 「空き枠を取得できませんでした」 | `appsscript.json` の `webapp.access` が `ANYONE_ANONYMOUS` か。`selfCheck` のログ |
+| **API_URL を開くと「アクセスが拒否されました／ドライブ アクセス権が必要です」** | **スクリプトが未認可**。STEP 5-4 の「デプロイした直後に一度ブラウザで開く」をやる。`webapp.access` の問題ではない |
+| 「空き枠を取得できませんでした」 | まず上の「未認可」を疑う。次に `appsscript.json` の `webapp.access` が `ANYONE_ANONYMOUS` か（STEP 5-2 の書き戻しを忘れると初期値に戻っている）。`selfCheck` のログ |
+| 空き枠が1日も出ない／`days` が空 | `CALENDAR_ID` の綴り。`WEEKDAYS`・`BUSINESS_START/END`・`MIN_LEAD_HOURS`（24時間以内の枠は出ない仕様） |
 | LINE通知が来ない | プロパティ `LINE_CHANNEL_ACCESS_TOKEN`。GASの「実行数」画面のエラー |
+| 前日リマインドが来ない | `installReminderTrigger` を実行したか（AIは実行できないので担当者がやる）。GASの「マイトリガー」に1件あるか |
 | 画面が真っ白 | `config.js` の記法ミス。ブラウザのコンソール |
-| Meet のURLが付かない | `appsscript.json` の `enabledAdvancedServices`。付かなくても予約は動く |
+| Meet のURLが付かない | `appsscript.json` の `enabledAdvancedServices`（STEP 5-2 の書き戻し）。付かなくても予約は動く |
+| タイムゾーンが9時間ずれる | `appsscript.json` の `timeZone` が `America/New_York` になっている＝STEP 5-2 の書き戻し漏れ |
 
 ## STEP 9｜完了を伝える
 
@@ -205,7 +300,7 @@ LINE Developers → LINEログインチャネル → LIFF → `相談予約` を
 |---|---|
 | 画面の文言・色・選択肢 | `frontend/config.js` → `vercel --prod --yes` |
 | 営業時間・枠・リマインド時刻 | GASのスクリプトプロパティ（再デプロイ不要） |
-| 裏側の処理 | `gas/Code.gs` を直して `clasp push -f` → `clasp deploy -i 【Deployment ID】`（同じURLのまま更新） |
+| 裏側の処理 | `gas/Code.gs` を直して `clasp push -f` → `clasp deploy -i 【Deployment ID】`（同じURLのまま更新。v3 の正式名は `clasp create-deployment -i`）。画面からやる場合は「デプロイ」→「デプロイを管理」→鉛筆→バージョン「新バージョン」→「デプロイ」 |
 | 停止 | LIFF のエンドポイントを外す、または Vercel のプロジェクトを止める（削除は担当者の明確な指示があるときだけ） |
 
 **Messaging APIチャネル・エルメの設定・スプレッドシート・カレンダーは消さない。**
