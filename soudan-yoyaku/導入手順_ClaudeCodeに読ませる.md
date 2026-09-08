@@ -246,6 +246,17 @@ curl -sL "【API_URL】?action=slots&from=<今日>&to=<7日後>"
 > 「予約画面を Vercel に公開します。Vercel のログインをお願いします。進めてよいですか？」
 
 1. `frontend/config.js` を編集：`LIFF_ID`【LIFF_ID】、`API_URL`【API_URL】、`HOST_NAME`、必要なら `TOPICS` / `ACCENT`（担当者に希望を聞く）。編集結果を見せて確認してもらう
+
+> 💡 **公開の前にローカルで動作確認できる**（2026-09-08 実測・おすすめ）
+> `LIFF_ID` が空でも、予約画面は LINE を経由せず空き枠の取得まで動く（`index.html` がその分岐を持っている）。
+> `API_URL` と `HOST_NAME` だけ入れた状態で：
+> ```
+> cd "<このキットのパス>/frontend" && python3 -m http.server 8777
+> ```
+> ブラウザで `http://localhost:8777/index.html?src=story` を開く。
+> カレンダーが出て、日付を選ぶと空き時間が並べば **GAS との疎通は完成している**（CORSも問題なし）。
+> ここで出なければ、LINE や Vercel ではなく STEP 5 側の問題だと切り分けられる。確認できたらサーバーは止める。
+
 2. 公開：
    ```
    npm install -g vercel
@@ -253,8 +264,24 @@ curl -sL "【API_URL】?action=slots&from=<今日>&to=<7日後>"
    cd "<このキットのパス>/frontend"
    vercel --prod --yes
    ```
-   質問はすべて Enter（既定値）。プロジェクト名は `soudan-yoyaku`
+   プロジェクト名は `soudan-yoyaku`。`vercel --prod` の質問はすべて Enter（既定値）でよい。
+
+   > ⚠️ **`vercel login` は「デバイスコード方式」に変わっている**（Vercel CLI 59.11.7 で実測。2026-09-08）
+   > 対話プロンプト（GitHub/GitLab/Email を矢印キーで選ぶ）は**もう出ない**。代わりに
+   > ```
+   > Visit https://vercel.com/oauth/device?user_code=XXXX-XXXX
+   > Waiting for authentication...
+   > ```
+   > とだけ表示されて待ち状態になる。担当者にこのURLをブラウザで開いてもらい、
+   > Vercel にログイン（**「Continue with GitHub」が既定**）して承認してもらう。
+   > 承認するとターミナル側が自動で先へ進む。**このログインはAIが代行しない**（担当者のアカウントにログインするため）。
+   > Vercel アカウントが無い場合は、その場で Sign Up（GitHubアカウントがあれば数クリック）。
+
 3. 表示された `https://….vercel.app` → **【FRONT_URL】**
+
+> ⚠️ **`config.js` を書いたまま git にコミットしない。** キットを `git clone` で取った場合、
+> `config.js` には【API_URL】が入る。公開リポジトリに戻す予定があるなら、
+> 記入した `config.js` はコミット対象から外すこと（テスト後は `git checkout -- frontend/config.js` で戻せる）。
 
 ## STEP 7｜LIFF のエンドポイントを差し替える（あなたが画面を進める）
 
