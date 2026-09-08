@@ -7,6 +7,7 @@ LINE公式のリッチメニューから開く、独自デザインの無料相�
 | 1 | `はじめにお読みください.md` | 人 |
 | 2 | `事前準備ガイド.md` | 人（LINE Developers・Google・GAS・公開先の設定） |
 | 3 | `導入手順_ClaudeCodeに読ませる.md` | Claude Code |
+| — | `導入をサポートする人へ.md` | 誰かに設置してあげる人（教える側） |
 | — | `gas/Code.gs` / `gas/appsscript.json` | GAS に貼る |
 | — | `frontend/index.html` / `frontend/config.js` | Vercel 等に置く |
 | — | `demo/yoyaku-liff-demo.html` | 面談用の操作デモ（本番には使わない） |

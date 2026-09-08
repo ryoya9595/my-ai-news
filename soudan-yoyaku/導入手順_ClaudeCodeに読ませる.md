@@ -383,6 +383,7 @@ LINE Developers → LINEログインチャネル → LIFF → 一覧の**右端�
 |---|---|
 | 画面の文言・色・選択肢 | `frontend/config.js` → `vercel --prod --yes` |
 | 営業時間・枠・リマインド時刻 | GASのスクリプトプロパティ（再デプロイ不要） |
+| オンライン相談のツール（Meet↔Zoom） | GASのスクリプトプロパティ `MEETING_TOOL` と `ZOOM_URL`（再デプロイ不要）。あわせて `config.js` の `SERVICE_NOTE` も直す |
 | 裏側の処理 | `gas/Code.gs` を直して `clasp push -f` → `clasp deploy -i 【Deployment ID】`（同じURLのまま更新。v3 の正式名は `clasp create-deployment -i`）。画面からやる場合は「デプロイ」→「デプロイを管理」→鉛筆→バージョン「新バージョン」→「デプロイ」 |
 | 停止 | LIFF のエンドポイントを外す、または Vercel のプロジェクトを止める（削除は担当者の明確な指示があるときだけ） |
 
