@@ -165,17 +165,34 @@ Set-Location "$HOME\Desktop"; Invoke-WebRequest -Uri https://github.com/ryoya959
 
 > 「Claude のクラウド環境に、Instagram と LINE のトークンを登録します。トークンの貼り付けだけお願いします。進めてよいですか？」
 
-1. https://claude.ai/code を開き、環境の設定 → `Default` の編集（または新規環境 `IG DM通知`）
-2. **Pro / Max の場合**：「API credentials」→「Add credential」を開き、次を**あなたが入力**する。Value 欄だけ担当者に貼り付けてもらう
-   - 1つ目：Name `Instagram`、Allowed websites `graph.instagram.com`、Header `Authorization` / Prefix `Bearer`、Value ← 担当者
-   - 2つ目：Name `LINE`、Allowed websites `api.line.me`、Header `Authorization` / Prefix `Bearer`、Value ← 担当者
-3. 「Environment variables」に、あなたが入力：
+**画面はすべて日本語**（`API credentials`＝「API認証情報」、`Environment variables`＝「環境変数」、
+`Network access`＝「ネットワークアクセス」）。2026-09-09 実測の導線は次のとおり。
+
+1. https://claude.ai/code → 左メニュー「**ルーティン**」→ 右上「**＋ 新しいルーティン**」
+   - 🔴 **設定メニューの中に環境の項目はない。** 環境はこのルーティン作成画面からしか開けない
+2. 「指示」欄の右下の「**☁ Default**」チップをクリック → 環境の一覧
+3. 「**＋ クラウド環境を追加**」→ 名前 `IG DM通知` / ネットワークアクセス `Trusted` /
+   環境変数に次の2行 → 「**環境を追加**」
    ```
    LINE_TO_USER_ID=（STEP 5 で控えたユーザーID）
    IG_WINDOW_HOURS=4.5
    ```
-4. 保存
-5. **Team の場合**：`事前準備ガイド.md` STEP 4-B の内容で、Network access を Custom にしてドメインを追加し、環境変数にトークンを入れる（値の貼り付けは担当者）
+   - 🔴 **この「追加」画面には API認証情報の欄がない。** 作ってから編集で開く
+4. もう一度チップを開き、`IG DM通知` の行に**マウスを乗せると右端に出る歯車アイコン**を押す（＝編集。ラベルなし）
+5. 下の方の「**API認証情報**」→「**＋ 認証情報を追加**」で、次を**あなたが入力**する。
+   カスタムヘッダーの「**値**」だけ担当者に貼り付けてもらう
+
+   | 名前 | 認証情報タイプ | 許可ウェブサイト | 値 |
+   |---|---|---|---|
+   | `Instagram` | `Bearer` | `graph.instagram.com` | ← 担当者 |
+   | `LINE` | `Bearer` | `api.line.me` | ← 担当者 |
+
+   - 認証情報タイプ `Bearer` を選ぶと、カスタムヘッダー行（`Authorization` / プレフィックス `Bearer`）が
+     **最初から入っている**。足す必要はない
+   - 🔴 **値は保存後に表示できない。** 直したいときは削除して追加し直す
+   - 「認証情報は追加または削除すると同時に保存されます」＝追加した時点で確定
+6. 編集画面の「**変更を保存**」を押す
+7. **Team の場合**：`事前準備ガイド.md` STEP 4-B の内容で、ネットワークアクセスを Custom にしてドメインを追加し、環境変数にトークンを入れる（値の貼り付けは担当者）
 
 ## STEP 7｜リポジトリに置く（あなたが実行）
 
