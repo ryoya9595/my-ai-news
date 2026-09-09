@@ -3,8 +3,8 @@
 Instagram の新着DMを取得して JSON で出力する。
 
 使い方:
-  python3 fetch_dms.py --hours 4.5                 直近4.5時間の新着DM
-  python3 fetch_dms.py --hours 4.5 --state state/ig_seen.json
+  python3 fetch_dms.py --hours 16                  直近16時間の新着DM
+  python3 fetch_dms.py --hours 16 --state state/ig_seen.json
                                                     通知済みのメッセージIDを除外して取得する。
                                                     拾ったIDは state の "pending" に置くだけで、
                                                     "seen"（通知済み）には入れない
@@ -21,7 +21,7 @@ Instagram の新着DMを取得して JSON で出力する。
 
 どこまで遡るか:
   --hours だけで遡ると、実行間隔がそれより空いたときにDMを取りこぼす。
-  （例: 10/14/17/19時に動かすと 19時→翌10時は15時間空くので、4.5時間では夜間のDMが拾えない）
+  （例: 10/14/17/19時に動かすと 19時→翌10時は15時間空く。既定の16時間ならこの空きを丸ごとカバーできる）
   そのため state に "last_run_at"（前回 --commit-state した時刻）を持ち、
   そこまで遡る。--hours はその下限、--max-lookback はその上限（長期停止したときの暴走防止）。
 
@@ -34,7 +34,7 @@ Instagram の新着DMを取得して JSON で出力する。
   {
     "ok": true,
     "me": {"id": "...", "username": "..."},
-    "window": {"from": "...", "to": "...", "hours": 4.5},
+    "window": {"from": "...", "to": "...", "hours": 16},
     "messages": [
       {"id": "...", "conversation_id": "...", "created_time": "2026-09-04T05:12:00+0000",
        "created_jst": "2026-09-04 14:12", "from": {"id": "...", "username": "..."},
@@ -160,7 +160,7 @@ def window_start(now, hours, max_lookback, last_run_at):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--hours", type=float, default=float(os.environ.get("IG_WINDOW_HOURS", "4.5")),
+    ap.add_argument("--hours", type=float, default=float(os.environ.get("IG_WINDOW_HOURS", "16")),
                     help="最低これだけは遡る時間（前回実行がもっと前ならそちらまで遡る）")
     ap.add_argument("--max-lookback", type=float, default=float(os.environ.get("IG_MAX_LOOKBACK_HOURS", "72")),
                     help="どれだけ前回実行が古くても、これ以上は遡らない上限")
